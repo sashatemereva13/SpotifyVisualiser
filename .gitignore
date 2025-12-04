@@ -1,0 +1,6 @@
+node_modules/
+uploads/
+analysis/
+.env
+*.mp3
+**/__pycache__
