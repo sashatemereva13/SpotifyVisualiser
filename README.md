@@ -175,4 +175,6 @@ python server/app.py
 **Commit examples:**
 
 ```bash
-feat(visualize
+feat(visualizer): add bass-reactive particles
+fix(api): handle missing analysis data
+docs(readme): add setup instructions
