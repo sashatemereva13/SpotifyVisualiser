@@ -111,9 +111,10 @@ spotify-visualizer/
 
 ### Clone repo
 
-````bash
+``` bash
 git clone https://github.com/YOUR_USERNAME/spotify-visualizer.git
 cd spotify-visualizer
+```
 ---
 
 ## 🚀 Running the Project
@@ -124,7 +125,7 @@ cd spotify-visualizer
 cd frontend
 npm install
 npm run dev
-
+```
 
 ### 🔵 Backend
 
@@ -132,7 +133,7 @@ npm run dev
 cd backend
 npm install
 node server.js
-
+```
 
 ### 🟢 Analysis Service
 
@@ -140,7 +141,7 @@ node server.js
 cd analysis_service
 pip install -r requirements.txt
 python server/app.py
-
+```
 ---
 
 ## 🧪 How the App Works (MVP Flow)
