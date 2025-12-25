@@ -2,13 +2,28 @@
 @import "./styles/fonts.css";
 
 @theme {
+  /* Fonts */
   --font-primary: "Montserrat";
-  --font-italic: "Montyserrat-Italic";
+  --font-italic: "Montserrat-Italic";
   --font-display: "BBHBartle", sans-serif;
 
-  --color-dark: "#22292B";
-  --color-golden: "#ECB732";
-  --color-darkblue: "#094C7A";
-  --color-purple: "#B09EB9";
-  --color-burgundy: "#9E0D00";
+  /* Core background / stage */
+  --color-dark: #0b0f14; /* deep stage black */
+  --color-dark-soft: #121822; /* panels, overlays */
+
+  /* Energy / performer */
+  --color-gold: #f5c77a; /* main aura / highlights */
+  --color-amber: #ffb703; /* strong accents, CTA */
+
+  /* Data / tech */
+  --color-cyan: #1de9b6; /* rings, HUD, analysis */
+  --color-teal: #00c2ff; /* secondary data */
+
+  /* Peaks / rhythm */
+  --color-orange: #ff6a00; /* beats, hits */
+  --color-red: #e63946; /* warnings, strong peaks */
+
+  /* Neutral UI */
+  --color-muted: #8a93a6; /* secondary text */
+  --color-light: #e6eaf2; /* primary text */
 }

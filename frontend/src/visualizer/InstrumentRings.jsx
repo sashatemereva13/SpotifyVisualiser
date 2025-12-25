@@ -10,9 +10,9 @@ export default function InstrumentRings({ analysis }) {
     <>
       {/*  LOW - bass */}
       <InstrumentRing
-        raius={1.6}
+        radius={1.9}
         thickness={0.09}
-        color="#A6D7C2"
+        color="#FFB703"
         speed={0.25}
         intensity={low}
         y={-0.3}
@@ -20,9 +20,9 @@ export default function InstrumentRings({ analysis }) {
 
       {/* MID - harmony */}
       <InstrumentRing
-        radius={1.25}
+        radius={1.8}
         thickness={0.06}
-        color="#FDC9E9"
+        color="#1DE9B6"
         speed={0.45}
         intensity={mid}
         y={0.2}
@@ -30,9 +30,9 @@ export default function InstrumentRings({ analysis }) {
 
       {/* HIGH - melody */}
       <InstrumentRing
-        radius={0.9}
+        radius={1.9}
         thickness={0.035}
-        color="#B09EB9"
+        color="#FF6A00"
         speed={0.8}
         intensity={high}
         y={0.7}

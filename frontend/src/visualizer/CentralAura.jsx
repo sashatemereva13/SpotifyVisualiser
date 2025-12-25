@@ -1,75 +1,70 @@
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import EnergyMaterial from "./EnergyMaterial";
+import AuraShell from "./AuraShell";
+import AuraParticles from "./AuraParticles";
 
 export default function CentralAura({ rms = 0.2 }) {
-  const pointsRef = useRef();
-
-  const geometry = useMemo(() => {
-    const count = 2500;
-    const positions = new Float32Array(count * 3);
-
-    for (let i = 0; i < count; i++) {
-      // vertical body
-      const y = THREE.MathUtils.randFloat(-1.2, 1.6);
-
-      // radius for thinner waist and fuller torso and head
-      const radius = 0.15 + 0.25 * Math.exp(-Math.abs(y)) + 0.1 * Math.random();
-
-      const angle = Math.random() * Math.PI * 2;
-
-      positions[i * 3 + 0] = Math.cos(angle) * radius;
-      positions[i * 3 + 1] = y;
-      positions[i * 3 + 2] = Math.sin(angle) * radius;
-    }
-
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    return geo;
-  }, []);
+  const groupRef = useRef();
 
   // ----------------- Animation ----------------
   useFrame((_, delta) => {
-    if (!pointsRef.current) return;
+    if (!groupRef.current) return;
 
-    // normalise RMS within a safe range
-    const targetScale = 1 + THREE.MathUtils.clamp(rms * 1.5, 0, 0.6);
-
-    pointsRef.current.scale.x = THREE.MathUtils.damp(
-      pointsRef.current.scale.x,
-      targetScale,
+    // gentle breathing
+    const breath = 1 + rms * 0.15;
+    groupRef.current.scale.y = THREE.MathUtils.damp(
+      groupRef.current.scale.y,
+      breath,
       3,
       delta
     );
 
-    pointsRef.current.scale.y = THREE.MathUtils.damp(
-      pointsRef.current.scale.y,
-      targetScale,
-      3,
-      delta
-    );
-
-    pointsRef.current.scale.z = THREE.MathUtils.damp(
-      pointsRef.current.scale.z,
-      targetScale,
-      3,
-      delta
-    );
-
-    // slow rotation to imitate living presence
-    pointsRef.current.rotation.y += delta * 0.15;
+    groupRef.current.rotation.y += delta * 0.1;
   });
 
   return (
-    <points ref={pointsRef} geometry={geometry}>
-      <pointsMaterial
-        size={0.035}
-        color="#FDC9E9"
-        transparent
-        opacity={0.85}
-        blending={THREE.AdditiveBlending}
-        depthWrite={false}
-      />
-    </points>
+    <group ref={groupRef}>
+      {/* HEAD */}
+
+      <group position={[0, 2, 0]}>
+        <AuraShell radius={0.3} height={0.4}>
+          <mesh>
+            <sphereGeometry args={[0.28, 32, 32]} />
+            <EnergyMaterial />
+          </mesh>
+        </AuraShell>
+      </group>
+
+      {/* TORSO */}
+      <group position={[0, 0.9, 0]}>
+        <AuraShell radius={0.45} height={0.9}>
+          <mesh>
+            <capsuleGeometry args={[0.35, 0.9, 12, 24]} />
+            <EnergyMaterial />
+          </mesh>
+        </AuraShell>
+      </group>
+
+      {/* LEGS */}
+      <group position={[-0.15, -0.5, 0]}>
+        <AuraShell radius={0.18} height={1.5}>
+          <mesh>
+            <capsuleGeometry args={[0.12, 1.5, 12, 24]} />
+            <EnergyMaterial />
+          </mesh>
+        </AuraShell>
+      </group>
+
+      <group position={[0.15, -0.5, 0]}>
+        <AuraShell radius={0.18} height={1.5}>
+          <mesh>
+            <capsuleGeometry args={[0.12, 1.5, 12, 24]} />
+            <EnergyMaterial />
+          </mesh>
+        </AuraShell>
+      </group>
+    </group>
   );
 }

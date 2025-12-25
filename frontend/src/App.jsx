@@ -6,7 +6,7 @@ export default function App() {
   const [analysis, setAnalysis] = useState(null);
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-black">
+    <div className="relative w-screen h-screen overflow-hidden bg-amber">
       <div className="absolute inset-0 z-0">
         <VisualizerBasic data={analysis} />
       </div>
