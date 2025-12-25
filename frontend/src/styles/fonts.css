@@ -1,0 +1,27 @@
+
+
+@font-face {
+    font-family: 'BBHBartle';
+    src: url('/fonts/BBHBartle.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+
+@font-face {
+    font-family: 'Montserrat';
+    src: url('/fonts/Montserrat-Variable.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+
+@font-face {
+    font-family: 'Montserrat-Italic';
+    src: url('/fonts/Montserrat-Italic-Variable.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}

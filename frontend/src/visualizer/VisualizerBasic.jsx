@@ -1,39 +1,27 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import * as THREE from "three";
+import CentralAura from "./CentralAura";
+import HeadHallo from "./HeadHallo";
+import InstrumentRings from "./InstrumentRings";
+import useAnalysisPlayback from "../utils/useAnalysisPlayback";
 
 export default function VisualizerBasic({ data }) {
-  const canvasRef = useRef();
-
-  useEffect(() => {
-    if (!data) return;
-
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    const bands = [
-      { label: "low", color: "#ff4d4d" },
-      { label: "mid", color: "#4dff88" },
-      { label: "high", color: "#4da6ff" },
-    ];
-
-    bands.forEach(
-      (band, i) => {
-        const values = data[band.label];
-        if (!values) return;
-
-        const avg = values.reduce((a, b) => a + b, 0) / values.length;
-
-        ctx.fillStyle = band.color;
-        ctx.fillRect(100 + i * 150, canvas.height - avg * 200, 80, avg * 200);
-      },
-      [data]
-    );
-  });
-
+  const playback = useAnalysisPlayback(data, data?.tempo ?? 120);
+  const rms = playback?.rms ?? 0.2;
   return (
     <>
-      <canvas ref={canvasRef} width={600} height={400}></canvas>
+      <Canvas
+        camera={{ position: [0, 2, 10], fov: 60 }}
+        style={{ background: "#010D03", width: "100%", height: "100%" }}
+      >
+        <ambientLight intensity={0.4} />
+        <pointLight position={[5, 8, 5]} intensity={3} />
+
+        <HeadHallo intensity={rms} />
+        <InstrumentRings analysis={playback} />
+        <CentralAura rms={rms} />
+      </Canvas>
     </>
   );
 }
