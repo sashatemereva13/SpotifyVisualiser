@@ -3,12 +3,7 @@ import VisualizerBasic from "./visualizer/VisualizerBasic";
 import AudioPlayer from "./components/AudioPlayer";
 
 export default function App() {
-  const [analysis] = useState({
-    low: Array(200).fill(0.4),
-    mid: Array(200).fill(0.7),
-    high: Array(200).fill(0.2),
-    tempo: 120,
-  });
+  const [analysis, setAnalysis] = useState(null);
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-black">
@@ -20,7 +15,7 @@ export default function App() {
         <h1 className="font-display text-3xl">Spotify Visualizer</h1>
 
         <div className="font-primary">
-          <AudioPlayer />
+          <AudioPlayer onAnalysis={setAnalysis} />
         </div>
       </div>
     </div>

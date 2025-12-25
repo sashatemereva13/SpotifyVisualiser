@@ -5,6 +5,7 @@ import * as THREE from "three";
 import CentralAura from "./CentralAura";
 import HeadHalo from "./HeadHallo";
 import InstrumentRings from "./InstrumentRings";
+import useAnalysisPlayback from "../utils/useAnalysisPlayback";
 
 function FrequencyBars({ data }) {
   const barsRef = useRef([]);
@@ -55,6 +56,8 @@ function FrequencyBars({ data }) {
 }
 
 export default function VisualizerBasic({ data }) {
+  const playback = useAnalysisPlayback(data, data?.tempo ?? 120);
+  const rms = playback?.rms ?? 0.2;
   return (
     <>
       <Canvas
@@ -64,9 +67,9 @@ export default function VisualizerBasic({ data }) {
         <ambientLight intensity={2} />
         <pointLight position={[10, 10, 10]} />+
         {/* <FrequencyBars data={data} /> */}
-        <HeadHalo />
-        <InstrumentRings />
-        <CentralAura />
+        <HeadHalo intensity={rms} />
+        <InstrumentRings analysis={playback} />
+        <CentralAura rms={rms} />
       </Canvas>
     </>
   );

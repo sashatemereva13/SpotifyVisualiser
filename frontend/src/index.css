@@ -1,15 +1,14 @@
 @import "tailwindcss";
 @import "./styles/fonts.css";
 
-
 @theme {
   --font-primary: "Montserrat";
   --font-italic: "Montyserrat-Italic";
   --font-display: "BBHBartle", sans-serif;
 
   --color-dark: "#22292B";
-  --color-pink: "#FDC9E9";
-  --color-tiffany: "#A6D7C2";
+  --color-golden: "#ECB732";
+  --color-darkblue: "#094C7A";
   --color-purple: "#B09EB9";
-  --color-bluegrey: "#C0CBD8";
+  --color-burgundy: "#9E0D00";
 }
