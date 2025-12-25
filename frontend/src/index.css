@@ -1,68 +1,29 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@import "tailwindcss";
+@import "./styles/fonts.css";
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+@theme {
+  /* Fonts */
+  --font-primary: "Montserrat";
+  --font-italic: "Montserrat-Italic";
+  --font-display: "BBHBartle", sans-serif;
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+  /* Core background / stage */
+  --color-dark: #0b0f14; /* deep stage black */
+  --color-dark-soft: #121822; /* panels, overlays */
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
+  /* Energy / performer */
+  --color-gold: #f5c77a; /* main aura / highlights */
+  --color-amber: #ffb703; /* strong accents, CTA */
 
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
+  /* Data / tech */
+  --color-cyan: #1de9b6; /* rings, HUD, analysis */
+  --color-teal: #00c2ff; /* secondary data */
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
+  /* Peaks / rhythm */
+  --color-orange: #ff6a00; /* beats, hits */
+  --color-red: #e63946; /* warnings, strong peaks */
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+  /* Neutral UI */
+  --color-muted: #8a93a6; /* secondary text */
+  --color-light: #e6eaf2; /* primary text */
 }
