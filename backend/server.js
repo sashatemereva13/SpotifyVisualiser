@@ -1,3 +1,4 @@
+import { initDb } from "./db/init.js";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -15,4 +16,5 @@ app.get("/", (req, res) => {
 app.get("/health", (req, res) => res.json({ ok: true }));
 
 const PORT = Number(process.env.PORT || 3001);
+await initDb();
 app.listen(PORT, () => console.log(`Backend running on http://localhost:${PORT}`));
