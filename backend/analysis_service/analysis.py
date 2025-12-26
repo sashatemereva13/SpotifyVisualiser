@@ -165,27 +165,27 @@ class Analysis:
     # 7) JSON final
     # -------------------------------------------------------
     def to_json(self):
-        data = {
-            "tempo": self.tempo,
-            "beats": self.beat_times,
+        return {
+            "tempo": float(self.tempo),
+            "beats": [float(b) for b in self.beat_times],
 
             # energy bands
-            "low": self.low,
-            "mid": self.mid,
-            "high": self.high,
+            "low": float(self.low),
+            "mid": float(self.mid),
+            "high": float(self.high),
 
             # reduced signals
-            "fft": self.fft_reduced,
-            "rms": self.rms,
+            "fft": [float(x) for x in self.fft_reduced],
+            "rms": [float(x) for x in self.rms],
 
             # spectral features
-            "centroid"   self.centroid,
-            "rolloff": self.rolloff,
-            "zcr": self.zcr,
-            "onsets": self.onsets,
-            "envelope": self.envelope
+            "centroid": [float(x) for x in self.centroid],
+            "rolloff": [float(x) for x in self.rolloff],
+            "zcr": [float(x) for x in self.zcr],
+            "onsets": [float(x) for x in self.onsets],
+            "envelope": [float(x) for x in self.envelope],
         }
-        return data
+
 
     # -------------------------------------------------------
     # 8) Pipeline complet
