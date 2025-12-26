@@ -18,6 +18,7 @@ export default function AudioPlayer({ onAnalysis }) {
       });
 
       const data = await res.json();
+      console.log("BACKEND RESPONSE:", data);
       onAnalysis?.(data.analysis);
     } catch (err) {
       console.error("Analysis failed", err);
