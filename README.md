@@ -1,5 +1,7 @@
 # 🎧 Spotify Visualiser
 
+We intentionally chose to manage our own audio database instead of relying on Spotify, in order to retain full control over signal analysis, playback quality, and data modelling. This allowed us to perform advanced analysis and build a richer visualization pipeline.
+
 Interactive 3D Music Visualisation using Audio Analysis + ThreeJS
 
 Upload a song → Extract tempo & frequency → Render visual effects.  
