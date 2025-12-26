@@ -1,6 +1,7 @@
 import { useMemo, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import FractalNode from "./FractalNode";
 
 // helper for safe normalisation
 function norm(x, min = 0, max = 1) {
@@ -24,7 +25,7 @@ function ReactiveCore({ analysis }) {
 
     // normalise incoming values
     const low = norm(Math.log(1 + (analysis.low ?? 0)));
-    const mid = norm(Math.low(1 + (analysis.mid ?? 0)));
+    const mid = norm(Math.log(1 + (analysis.mid ?? 0)));
     const high = norm(Math.log(1 + (analysis.high ?? 0)));
 
     // smooth (EMA)
@@ -66,11 +67,11 @@ function ReactiveCore({ analysis }) {
 export default function VisualizerBasic({ data }) {
   return (
     <>
-      <Canvas camera={{ position: [0, 0, 4], fov: 45 }} dpr={[1, 1.5]}>
+      <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
         <ambientLight intensity={0.4} />
-        <pointLight position={[3, 3, 3]} intensity={1.2} />
+        <directionalLight position={[5, 5, 5]} intensity={1.2} />
 
-        <ReactiveCore analysis={data} />
+        <FractalNode data={data} />
       </Canvas>
     </>
   );
