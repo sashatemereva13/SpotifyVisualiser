@@ -19,6 +19,8 @@ varying vec2 vUv;
 uniform float uTime;
 uniform float uEnergy;
 
+uniform float uMood;
+
 /* -----------------------
    Utility
 ------------------------ */
@@ -79,6 +81,9 @@ void main() {
   // Base position
   vec3 p = vec3(uv * 2.0, 0.0);
 
+  // Depth breathing (slow + soft)
+  p.z += sin(uTime * 0.4 + length(uv) * 3.0) * (0.15 + energy * 0.25);
+
   float d = sdfFractal(p);
 
 // Soft distance falloff (Gaussian-like)
@@ -90,12 +95,24 @@ glow = pow(glow, 1.3);
 // Energy widens the light instead of spiking it
 glow *= mix(0.85, 1.1, energy);
 
-  // Calm color palette
-  vec3 color = mix(
-    vec3(0.03, 0.06, 0.1),
-    vec3(0.5, 0.75, 1.0),
-    glow
-  );
+vec3 calmColor = vec3(0.2, 0.35, 0.6);    // blue / introspective
+vec3 dreamyColor = vec3(0.5, 0.6, 0.85); // airy / floating
+vec3 energeticColor = vec3(0.9, 0.4, 0.3); // warm / alive
+
+// mood splits
+float calmToDreamy = smoothstep(0.0, 0.5, uMood);
+float dreamyToEnergy = smoothstep(0.4, 1.0, uMood);
+
+// blend palettes
+vec3 moodColor = mix(calmColor, dreamyColor, calmToDreamy);
+moodColor = mix(moodColor, energeticColor, dreamyToEnergy);
+
+// apply glow
+vec3 color = moodColor * glow;
+
+// gentle gamma
+color = pow(color, vec3(0.9));
+
 
   gl_FragColor = vec4(color, 1.0);
 }
@@ -106,6 +123,7 @@ const FractalMaterial = shaderMaterial(
   {
     uTime: 0,
     uEnergy: 0,
+    uMood: 0,
   },
   vertex,
   fragment
@@ -116,6 +134,7 @@ extend({ FractalMaterial });
 export default function FractalSDF({ data }) {
   const mat = useRef();
   const smoothedEnergy = useRef(0);
+  const mood = useRef(0);
 
   useFrame((state, delta) => {
     if (!data || !mat.current) return;
@@ -132,6 +151,23 @@ export default function FractalSDF({ data }) {
 
     mat.current.uTime = state.clock.elapsedTime;
     mat.current.uEnergy = smoothedEnergy.current;
+
+    const centroid = data.centroid?.[t % data.centroid.length] ?? 0;
+
+    // normalize roughly
+    const energyNorm = THREE.MathUtils.clamp(
+      smoothedEnergy.current * 2.0,
+      0,
+      1
+    );
+    const brightnessNorm = THREE.MathUtils.clamp(centroid / 4000, 0, 1);
+
+    // mood aixs
+    const moodTarget = energyNorm * 0.6 + brightnessNorm * 0.4;
+
+    mood.current = THREE.MathUtils.damp(mood.current, moodTarget, 1.5, delta);
+
+    mat.current.uMood = mood.current;
   });
 
   return (
