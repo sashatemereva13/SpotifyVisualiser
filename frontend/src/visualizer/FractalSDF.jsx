@@ -5,9 +5,10 @@ import { useRef } from "react";
 
 const vertex = `
 varying vec2 vUv;
+
 void main() {
   vUv = uv;
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  gl_Position = vec4(position, 1.0);
 }
 `;
 
@@ -18,7 +19,6 @@ varying vec2 vUv;
 
 uniform float uTime;
 uniform float uEnergy;
-
 uniform float uMood;
 
 /* -----------------------
@@ -31,38 +31,91 @@ mat2 rotate(float a) {
   return mat2(c, -s, s, c);
 }
 
-/* Smooth noise-ish flow */
-vec3 flowWarp(vec3 p, float t) {
-  p.xy += 0.15 * sin(vec2(p.y, p.x) * 1.5 + t);
-  p.yz += 0.12 * sin(vec2(p.z, p.y) * 1.2 + t * 0.8);
-  p.zx += 0.10 * sin(vec2(p.x, p.z) * 1.1 - t * 0.6);
-  return p;
+float smin(float a, float b, float k) {
+  float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+  return mix(b, a, h) - k * h * (1.0 - h);
 }
 
 /* -----------------------
-   Fractal SDF
+   Flow distortion
+------------------------ */
+
+vec3 flowWarp(vec3 p, float t) {
+  float w = sin(dot(p, vec3(1.2, 1.7, 1.4)) + t);
+  p += 0.12 * w;
+  return p;
+}
+
+
+/* -----------------------
+   SDF Primitives
+------------------------ */
+
+float sdSphere(vec3 p, float r) {
+  return length(p) - r;
+}
+
+float sdTorus(vec3 p, vec2 t) {
+  vec2 q = vec2(length(p.xz) - t.x, p.y);
+  return length(q) - t.y;
+}
+
+float sdBox(vec3 p, vec3 b) {
+  vec3 q = abs(p) - b;
+  return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
+}
+
+/* -----------------------
+   Fractal SDF (your core)
 ------------------------ */
 
 float sdfFractal(vec3 p) {
   float scale = 1.8;
   float d = 1e9;
 
-  for (int i = 0; i < 6; i++) {
-
-    // VERY slow internal rotation
+  for (int i = 0; i < 2; i++) {
     float t = uTime * 0.05 + float(i) * 0.4;
     p.xy *= rotate(t);
     p.yz *= rotate(t * 0.6);
 
-    // Gentle flow distortion
-    p = flowWarp(p, uTime * 0.15);
+    p = flowWarp(p, uTime * 0.12);
 
-    // Fractal fold
     p = abs(p) - 0.55;
     p *= scale;
 
     d = min(d, length(p) / scale);
+        if (d < 0.02) break;
   }
+
+  return d;
+}
+
+/* -----------------------
+   Master Shape Map
+------------------------ */
+
+float map(vec3 p) {
+
+  float energy = smoothstep(0.0, 0.6, uEnergy);
+
+  // shape distances
+  float dSphere  = sdSphere(p, 0.8);
+  float dTorus   = sdTorus(p, vec2(0.7, 0.18));
+  float dFractal = sdfFractal(p);
+  float dBox     = sdBox(p, vec3(0.55));
+  float dNebula  = sdSphere(flowWarp(p, uTime * 0.6), 0.9);
+
+  // mood-based blending zones
+  float m1 = smoothstep(0.00, 0.25, uMood);
+  float m2 = smoothstep(0.20, 0.45, uMood);
+  float m3 = smoothstep(0.40, 0.65, uMood);
+  float m4 = smoothstep(0.60, 0.90, uMood);
+
+  float d = dSphere;
+  d = smin(d, dTorus,   0.3 * m1);
+  d = smin(d, dFractal, 0.35 * m2);
+  d = smin(d, dBox,     0.25 * m3);
+  d = smin(d, dNebula,  0.4 * m4 * energy);
 
   return d;
 }
@@ -73,46 +126,36 @@ float sdfFractal(vec3 p) {
 
 void main() {
 
-  vec2 uv = vUv - 0.5;
+  vec2 uv = vUv * 2.0 - 1.0;
 
-  // Smooth energy (prevents jitter)
-  float energy = smoothstep(0.0, 0.6, uEnergy);
+  vec3 ro = vec3(0.0, 0.0, 3.2);
+  vec3 rd = normalize(vec3(uv, -1.6));
 
-  // Base position
-  vec3 p = vec3(uv * 2.0, 0.0);
+  float t = 0.0;
+  float glow = 0.0;
 
-  // Depth breathing (slow + soft)
-  p.z += sin(uTime * 0.4 + length(uv) * 3.0) * (0.15 + energy * 0.25);
+  for (int i = 0; i < 36; i++) {
+    vec3 p = ro + rd * t;
+    float d = map(p);
+   float g = 1.0 / (1.0 + d * d * 6.0);
+glow += g;
+    t += clamp(d, 0.02, 0.2);
+  }
 
-  float d = sdfFractal(p);
+  glow *= 0.015;
 
-// Soft distance falloff (Gaussian-like)
-float glow = exp(-d * d * 3.3);
+  vec3 calmColor      = vec3(0.2, 0.35, 0.6);
+  vec3 dreamyColor    = vec3(0.5, 0.6, 0.85);
+  vec3 energeticColor = vec3(0.9, 0.4, 0.3);
 
-// Gentle compression (removes harsh peaks)
-glow = pow(glow, 1.3);
+  float calmToDreamy  = smoothstep(0.0, 0.5, uMood);
+  float dreamyToEnergy = smoothstep(0.4, 1.0, uMood);
 
-// Energy widens the light instead of spiking it
-glow *= mix(0.85, 1.1, energy);
+  vec3 moodColor = mix(calmColor, dreamyColor, calmToDreamy);
+  moodColor = mix(moodColor, energeticColor, dreamyToEnergy);
 
-vec3 calmColor = vec3(0.2, 0.35, 0.6);    // blue / introspective
-vec3 dreamyColor = vec3(0.5, 0.6, 0.85); // airy / floating
-vec3 energeticColor = vec3(0.9, 0.4, 0.3); // warm / alive
-
-// mood splits
-float calmToDreamy = smoothstep(0.0, 0.5, uMood);
-float dreamyToEnergy = smoothstep(0.4, 1.0, uMood);
-
-// blend palettes
-vec3 moodColor = mix(calmColor, dreamyColor, calmToDreamy);
-moodColor = mix(moodColor, energeticColor, dreamyToEnergy);
-
-// apply glow
-vec3 color = moodColor * glow;
-
-// gentle gamma
-color = pow(color, vec3(0.9));
-
+  vec3 color = moodColor * glow;
+  color = pow(color, vec3(0.85));
 
   gl_FragColor = vec4(color, 1.0);
 }
@@ -164,15 +207,13 @@ export default function FractalSDF({ data }) {
 
     // mood aixs
     const moodTarget = energyNorm * 0.6 + brightnessNorm * 0.4;
-
     mood.current = THREE.MathUtils.damp(mood.current, moodTarget, 1.5, delta);
-
     mat.current.uMood = mood.current;
   });
 
   return (
     <mesh>
-      <planeGeometry args={[5, 5]} />
+      <planeGeometry args={[5, 5, 128, 128]} />
       <fractalMaterial ref={mat} side={THREE.DoubleSide} />
     </mesh>
   );
