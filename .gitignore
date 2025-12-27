@@ -4,3 +4,4 @@ analysis/
 .env
 *.mp3
 **/__pycache__
+.idea/
