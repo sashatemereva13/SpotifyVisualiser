@@ -1,5 +1,6 @@
-librosa
-soundfile
-colorama
 fastapi
 uvicorn
+python-multipart
+numpy
+librosa
+soundfile
