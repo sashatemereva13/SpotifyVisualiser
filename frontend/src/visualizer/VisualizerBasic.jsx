@@ -1,39 +1,27 @@
-import { useEffect, useRef } from "react";
+import { useMemo, useRef } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import * as THREE from "three";
+import FractalNode from "./FractalNode";
 
-export default function VisualizerBasic({ data }) {
-  const canvasRef = useRef();
-
-  useEffect(() => {
-    if (!data) return;
-
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    const bands = [
-      { label: "low", color: "#ff4d4d" },
-      { label: "mid", color: "#4dff88" },
-      { label: "high", color: "#4da6ff" },
-    ];
-
-    bands.forEach(
-      (band, i) => {
-        const values = data[band.label];
-        if (!values) return;
-
-        const avg = values.reduce((a, b) => a + b, 0) / values.length;
-
-        ctx.fillStyle = band.color;
-        ctx.fillRect(100 + i * 150, canvas.height - avg * 200, 80, avg * 200);
-      },
-      [data]
-    );
+function CameraOrbit() {
+  useFrame(({ camera, clock }) => {
+    const t = clock.elapsedTime * 0.15;
+    camera.position.x = Math.cos(t) * 4.0;
+    camera.position.z = Math.sin(t) * 4.0;
+    camera.lookAt(0, 0, 0);
   });
 
+  return null;
+}
+export default function VisualizerBasic({ data }) {
   return (
     <>
-      <canvas ref={canvasRef} width={600} height={400}></canvas>
+      <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
+        <ambientLight intensity={0.4} />
+        <directionalLight position={[5, 5, 5]} intensity={1.2} />
+        {/* <CameraOrbit /> */}
+        <FractalNode data={data} />
+      </Canvas>
     </>
   );
 }
