@@ -1,3 +1,5 @@
 librosa
 soundfile
 colorama
+fastapi
+uvicorn
