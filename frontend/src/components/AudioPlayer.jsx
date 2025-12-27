@@ -12,18 +12,27 @@ export default function AudioPlayer({ onAnalysis }) {
     formData.append("file", file);
 
     try {
-      const res = await fetch("http://localhost:8000/api/tracks", {
+      const API_URL = import.meta.env.VITE_API_URL;
+
+      const res = await fetch(`${API_URL}/api/tracks`, {
         method: "POST",
         body: formData,
       });
 
+      if (!res.ok) {
+        throw new Error(`Backend error: ${res.status}`);
+      }
+
       const data = await res.json();
       console.log("BACKEND RESPONSE:", data);
+
       onAnalysis?.(data.analysis);
+      console.log("ANALYSIS SENT TO VISUALISER");
     } catch (err) {
       console.error("Analysis failed", err);
     }
   }
+
 
   return (
     <input
