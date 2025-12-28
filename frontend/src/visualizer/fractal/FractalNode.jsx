@@ -6,7 +6,7 @@ export default function FractalNode({ scale = 1, data }) {
   const ref = useRef();
 
   return (
-    <group ref={ref} scale={scale}>
+    <group position={[0, 0, -5]} ref={ref} scale={scale}>
       <FractalSDF data={data} />
     </group>
   );
