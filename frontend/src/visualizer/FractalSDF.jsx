@@ -73,7 +73,7 @@ float sdfFractal(vec3 p) {
   float scale = 1.8;
   float d = 1e9;
 
-  for (int i = 0; i < 2; i++) {
+  for (int i = 0; i < 4; i++) {
     float t = uTime * 0.05 + float(i) * 0.4;
     p.xy *= rotate(t);
     p.yz *= rotate(t * 0.6);
@@ -84,7 +84,7 @@ float sdfFractal(vec3 p) {
     p *= scale;
 
     d = min(d, length(p) / scale);
-        if (d < 0.02) break;
+
   }
 
   return d;
@@ -99,8 +99,8 @@ float map(vec3 p) {
   float energy = smoothstep(0.0, 0.6, uEnergy);
 
   // shape distances
-  float dSphere  = sdSphere(p, 0.8);
-  float dTorus   = sdTorus(p, vec2(0.7, 0.18));
+  float dSphere  = sdSphere(p, 0.9);
+  float dTorus   = sdTorus(p, vec2(0.3, 0.2));
   float dFractal = sdfFractal(p);
   float dBox     = sdBox(p, vec3(0.55));
   float dNebula  = sdSphere(flowWarp(p, uTime * 0.6), 0.9);
@@ -128,21 +128,24 @@ void main() {
 
   vec2 uv = vUv * 2.0 - 1.0;
 
-  vec3 ro = vec3(0.0, 0.0, 3.2);
+  vec3 ro = vec3(0.0, 0.0, 3.5);
   vec3 rd = normalize(vec3(uv, -1.6));
 
-  float t = 0.0;
-  float glow = 0.0;
+float t = 0.0;
+float d = 0.0;
 
-  for (int i = 0; i < 36; i++) {
-    vec3 p = ro + rd * t;
-    float d = map(p);
-   float g = 1.0 / (1.0 + d * d * 6.0);
-glow += g;
-    t += clamp(d, 0.02, 0.2);
-  }
+for (int i = 0; i < 32; i++) {
+  vec3 p = ro + rd * t;
+  d = map(p);
+  if (d < 0.001) break;
+  t += d * 0.85;
+}
 
-  glow *= 0.015;
+vec3 p = ro + rd * t;
+
+
+float glow =  exp(-d * d * 10.0);
+
 
   vec3 calmColor      = vec3(0.2, 0.35, 0.6);
   vec3 dreamyColor    = vec3(0.5, 0.6, 0.85);
@@ -156,6 +159,18 @@ glow += g;
 
   vec3 color = moodColor * glow;
   color = pow(color, vec3(0.85));
+
+  // --- SURFACE FRACTAL DETAIL ---
+float surfaceFractal = sdfFractal(p * 0.9);
+float fractalMask = smoothstep(0.7, 0.1, surfaceFractal);
+
+// carve brightness
+color *= mix(0.2, 1.35, fractalMask);
+
+// optional tint
+vec3 fractalTint = vec3(0.95, 1.05, 1.15);
+color = mix(color, color * fractalTint, fractalMask * 0.5);
+
 
   gl_FragColor = vec4(color, 1.0);
 }
@@ -213,7 +228,7 @@ export default function FractalSDF({ data }) {
 
   return (
     <mesh>
-      <planeGeometry args={[5, 5, 128, 128]} />
+      <planeGeometry args={[2, 2, 128, 128]} />
       <fractalMaterial ref={mat} side={THREE.DoubleSide} />
     </mesh>
   );
