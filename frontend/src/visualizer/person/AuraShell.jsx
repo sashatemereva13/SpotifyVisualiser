@@ -63,7 +63,7 @@ export default function AuraShell({
             <bufferAttribute
               attach="attributes-position"
               array={particles}
-              itemsSize={3}
+              itemSize={3}
               count={particles.length / 3}
             />
           </bufferGeometry>
@@ -71,7 +71,8 @@ export default function AuraShell({
           <pointsMaterial
             size={0.025}
             color="#1DE9B6"
-            transparentopacity={0.9}
+            transparent
+            opacity={0.9}
             blending={THREE.AdditiveBlending}
             depthWrite={false}
           />

@@ -1,18 +1,10 @@
 import { useMemo, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import FractalNode from "./FractalNode";
+import FractalNode from "./fractal/FractalNode";
+import CentralAura from "./person/CentralAura";
+import { OrbitControls } from "@react-three/drei";
 
-function CameraOrbit() {
-  useFrame(({ camera, clock }) => {
-    const t = clock.elapsedTime * 0.15;
-    camera.position.x = Math.cos(t) * 4.0;
-    camera.position.z = Math.sin(t) * 4.0;
-    camera.lookAt(0, 0, 0);
-  });
-
-  return null;
-}
 export default function VisualizerBasic({ data }) {
   return (
     <>
@@ -20,7 +12,16 @@ export default function VisualizerBasic({ data }) {
         <ambientLight intensity={0.4} />
         <directionalLight position={[5, 5, 5]} intensity={1.2} />
         {/* <CameraOrbit /> */}
-        <FractalNode data={data} />
+
+        <group renderOrder={0}>
+          <FractalNode scale={2} data={data} />
+        </group>
+
+        <OrbitControls />
+
+        <group position={[0, -1, -3]} renderOrder={1}>
+          <CentralAura rms={data} />
+        </group>
       </Canvas>
     </>
   );

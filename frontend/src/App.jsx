@@ -7,16 +7,16 @@ export default function App() {
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-dark">
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-1">
         <VisualizerBasic data={analysis} />
       </div>
 
-      <div className="relative z-10 flex flex-col h-full justify-between p-6 text-white">
-        <h1 className="font-display text-3xl">Spotify Visualizer</h1>
+      <h1 className="absolute top-0 left-0 p-10 z-10 text-white font-display text-3xl">
+        Spotify Visualizer
+      </h1>
 
-        <div className="font-primary">
-          <AudioPlayer onAnalysis={setAnalysis} />
-        </div>
+      <div className="bottom-0 left-0 p-10 font-primary absolute z-10 bottom-1">
+        <AudioPlayer onAnalysis={setAnalysis} />
       </div>
     </div>
   );

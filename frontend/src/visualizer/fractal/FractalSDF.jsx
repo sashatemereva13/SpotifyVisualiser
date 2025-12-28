@@ -122,7 +122,8 @@ float sdfFractal(vec3 p) {
 
 float map(vec3 p) {
 
-  float energy = smoothstep(0.0, 0.6, uEnergy);
+// --- CRESCENDO SPIRAL ---
+float energy = smoothstep(0.1, 0.7, uEnergy);
 
   // shape distances
   float dSphere  = sdSphere(p, 0.9);
@@ -160,7 +161,7 @@ void main() {
 float t = 0.0;
 float d = 0.0;
 
-for (int i = 0; i < 32; i++) {
+for (int i = 0; i < 4; i++) {
   vec3 p = ro + rd * t;
   d = map(p);
   if (d < 0.001) break;
@@ -173,12 +174,8 @@ vec3 p = ro + rd * t;
 vec3 viewDir = normalize(ro - p);
 
 // approximate normal from SDF
-float eps = 0.002;
-vec3 n = normalize(vec3(
-map(p + vec3(eps, 0, 0)) - map(p - vec3(eps, 0, 0)),
-map(p + vec3(0, eps, 0)) - map(p - vec3(0, eps, 0)),
-map(p + vec3(0, 0, eps)) - map(p - vec3(0, 0, eps))
-));
+vec3 n = normalize(p + flowWarp(p, uTime * 0.2));
+
 
 // fresnel term
 float fresnel = pow(
@@ -186,10 +183,10 @@ float fresnel = pow(
 );
 
 
-float glow =  exp(-d * d * 10.0);
+float glow =  exp(-d * d * 8.0);
 
 
-  vec3 calmColor      = vec3(0.2, 0.35, 0.6);
+  vec3 calmColor      = vec3(0.9, 0.05, 0.6);
   vec3 dreamyColor    = vec3(0.5, 0.6, 0.85);
   vec3 energeticColor = vec3(0.9, 0.4, 0.3);
 
@@ -214,7 +211,7 @@ float surfaceFractal = sdfFractal(p * 0.9);
 float fractalMask = smoothstep(0.7, 0.1, surfaceFractal);\
 
 // subtle spectral glow split
-color.r += fresnel * 0.08;
+color.r += fresnel * 0.1;
 color.b -= fresnel * 0.05;
 
 // carve brightness
@@ -282,7 +279,7 @@ export default function FractalSDF({ data }) {
   return (
     <mesh>
       <planeGeometry args={[2, 2, 128, 128]} />
-      <fractalMaterial ref={mat} side={THREE.DoubleSide} />
+      <fractalMaterial ref={mat} depthWrite={false} depthTest={true} />
     </mesh>
   );
 }
