@@ -37,6 +37,32 @@ float smin(float a, float b, float k) {
 }
 
 /* -----------------------
+  Iridescence helpers
+------------------------ */
+
+vec3 hueShift(vec3 color, float hue) {
+const mat3 rgb2yiq = mat3(
+0.299, 0.587, 0.114,
+0.596, -0.274, -0.322,
+0.211, -0.523, 0.312
+);
+
+const mat3 yiq2rgb = mat3(
+1.0, 0.956, 0.621,
+1.0, -0.272, -0.647,
+1.0, -1.106, 1.703
+);
+
+vec3 yiq = rgb2yiq * color;
+float angle = hue * 6.28318;
+mat2 rot = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
+yiq.yz = rot * yiq.yz;
+return clamp(yiq2rgb * yiq, 0.0, 1.0);
+}
+
+
+
+/* -----------------------
    Flow distortion
 ------------------------ */
 
@@ -143,6 +169,22 @@ for (int i = 0; i < 32; i++) {
 
 vec3 p = ro + rd * t;
 
+// --- VIEW + NORMAL (for iridescence) ---
+vec3 viewDir = normalize(ro - p);
+
+// approximate normal from SDF
+float eps = 0.002;
+vec3 n = normalize(vec3(
+map(p + vec3(eps, 0, 0)) - map(p - vec3(eps, 0, 0)),
+map(p + vec3(0, eps, 0)) - map(p - vec3(0, eps, 0)),
+map(p + vec3(0, 0, eps)) - map(p - vec3(0, 0, eps))
+));
+
+// fresnel term
+float fresnel = pow(
+1.0 - clamp(dot(n, viewDir), 0.0, 1.0), 2.5
+);
+
 
 float glow =  exp(-d * d * 10.0);
 
@@ -160,9 +202,20 @@ float glow =  exp(-d * d * 10.0);
   vec3 color = moodColor * glow;
   color = pow(color, vec3(0.85));
 
+  // --- IRIDESCENCE ---
+  float iridescenceStrength = mix(0.15, 0.55, uEnergy);
+  float hue = fresnel * 0.25 + uTime * 0.05;
+
+  vec3 iridescent = hueShift(color, hue);
+  color = mix(color, iridescent, fresnel * iridescenceStrength);
+
   // --- SURFACE FRACTAL DETAIL ---
 float surfaceFractal = sdfFractal(p * 0.9);
-float fractalMask = smoothstep(0.7, 0.1, surfaceFractal);
+float fractalMask = smoothstep(0.7, 0.1, surfaceFractal);\
+
+// subtle spectral glow split
+color.r += fresnel * 0.08;
+color.b -= fresnel * 0.05;
 
 // carve brightness
 color *= mix(0.2, 1.35, fractalMask);
