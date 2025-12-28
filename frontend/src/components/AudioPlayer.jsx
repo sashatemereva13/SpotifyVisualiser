@@ -33,10 +33,9 @@ export default function AudioPlayer({ onAnalysis }) {
     }
   }
 
-
   return (
     <input
-      className="bg-amber text-dark px-4 py-2 rounded"
+      className="bg-white text-dark px-4 py-2 rounded"
       type="file"
       accept="audio/*"
       onChange={handlePlay}
