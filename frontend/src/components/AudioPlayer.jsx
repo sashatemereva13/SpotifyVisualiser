@@ -35,18 +35,16 @@
  *   Web Audio API    = "musician playing live"
  */
 
-export default function AudioPlayer({ audioRef, onAnalysis }) {
+export default function AudioPlayer({ setAudio, onAnalysis }) {
   async function handlePlay(e) {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (!audioRef.current) {
-      audioRef.current = new Audio();
-      audioRef.current.crossOrigin = "anonymous";
-    }
+    const audio = new Audio(URL.createObjectURL(file));
+    audio.crossOrigin = "anonymous";
+    await audio.play();
 
-    audioRef.current.src = URL.createObjectURL(file);
-    await audioRef.current.play();
+    setAudio(audio); // 🔑 triggers render
 
     // backend analysis (once)
     const formData = new FormData();

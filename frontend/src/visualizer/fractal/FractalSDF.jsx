@@ -96,7 +96,7 @@ float sdBox(vec3 p, vec3 b) {
 ------------------------ */
 
 float sdfFractal(vec3 p) {
-  float scale = 1.8;
+  float scale = 3.8;
   float d = 1e9;
 
   for (int i = 0; i < 4; i++) {
@@ -104,7 +104,7 @@ float sdfFractal(vec3 p) {
     p.xy *= rotate(t);
     p.yz *= rotate(t * 0.6);
 
-    p = flowWarp(p, uTime * 0.12);
+    p = flowWarp(p, uTime * (0.03 + uEnergy * 0.15));
 
     p = abs(p) - 0.55;
     p *= scale;
@@ -122,27 +122,35 @@ float sdfFractal(vec3 p) {
 
 float map(vec3 p) {
 
-// --- CRESCENDO SPIRAL ---
-float energy = smoothstep(0.1, 0.7, uEnergy);
+
+float energy = smoothstep(0.05, 0.8, uEnergy);
+
+// beat-driven fold amplification
+float beatBoost = smoothstep(0.3, 0.8, uEnergy);
+// beat-sensitive multiplier
+float beatForce = smoothstep(0.3, 0.9, uEnergy);
 
   // shape distances
   float dSphere  = sdSphere(p, 0.9);
   float dTorus   = sdTorus(p, vec2(0.3, 0.2));
   float dFractal = sdfFractal(p);
-  float dBox     = sdBox(p, vec3(0.55));
+  float dBox     = sdBox(p, vec3(0.25));
   float dNebula  = sdSphere(flowWarp(p, uTime * 0.6), 0.9);
 
   // mood-based blending zones
-  float m1 = smoothstep(0.00, 0.25, uMood);
+  float m1 = smoothstep(0.10, 0.35, uMood);
   float m2 = smoothstep(0.20, 0.45, uMood);
-  float m3 = smoothstep(0.40, 0.65, uMood);
-  float m4 = smoothstep(0.60, 0.90, uMood);
+  float m3 = smoothstep(0.20, 0.65, uMood);
+  float m4 = smoothstep(0.30, 0.70, uMood);
 
   float d = dSphere;
   d = smin(d, dTorus,   0.3 * m1);
-  d = smin(d, dFractal, 0.35 * m2);
+  d = smin(d, dFractal, 0.35 * m2 * (1.0 + beatForce * 2.0));
   d = smin(d, dBox,     0.25 * m3);
   d = smin(d, dNebula,  0.4 * m4 * energy);
+
+  d = smin(d, dFractal, 0.35 * m2 * (1.0 + beatBoost * 1.5));
+
 
   return d;
 }
@@ -161,7 +169,7 @@ void main() {
 float t = 0.0;
 float d = 0.0;
 
-for (int i = 0; i < 4; i++) {
+for (int i = 0; i < 7; i++) {
   vec3 p = ro + rd * t;
   d = map(p);
   if (d < 0.001) break;
@@ -183,32 +191,51 @@ float fresnel = pow(
 );
 
 
-float glow =  exp(-d * d * 8.0);
+float glow = exp(-d * d * (6.0 + uEnergy * 12.0));
 
 
-  vec3 calmColor      = vec3(0.9, 0.05, 0.6);
-  vec3 dreamyColor    = vec3(0.5, 0.6, 0.85);
-  vec3 energeticColor = vec3(0.9, 0.4, 0.3);
 
-  float calmToDreamy  = smoothstep(0.0, 0.5, uMood);
-  float dreamyToEnergy = smoothstep(0.4, 1.0, uMood);
+// --- COSMIC PASTEL PALETTE ---
+vec3 deepSpace    = vec3(0.08, 0.10, 0.18); // near-black indigo
+vec3 cosmicBlue   = vec3(0.25, 0.35, 0.75); // periwinkle blue
+vec3 lavender     = vec3(0.70, 0.55, 0.85); // soft violet
+vec3 peach        = vec3(0.95, 0.65, 0.55); // coral-peach
+vec3 pearl        = vec3(0.95, 0.95, 1.00); // milky highlight
 
-  vec3 moodColor = mix(calmColor, dreamyColor, calmToDreamy);
-  moodColor = mix(moodColor, energeticColor, dreamyToEnergy);
+// --- BASE COSMIC FIELD ---
+vec3 baseColor = mix(deepSpace, cosmicBlue, smoothstep(0.0, 0.4, uMood));
 
-  vec3 color = moodColor * glow;
-  color = pow(color, vec3(0.85));
+// --- DREAM LAYER ---
+baseColor = mix(baseColor, lavender, smoothstep(0.3, 0.7, uMood));
+
+// --- ENERGY FLOW (warm through cool) ---
+float warmFlow = smoothstep(0.2, 0.8, uEnergy);
+baseColor = mix(baseColor, peach, warmFlow * 0.6);
+
+// --- PEARL HIGHLIGHT (only where glow is strong) ---
+baseColor = mix(baseColor, pearl, glow * 0.35);
+
+// --- APPLY GLOW ---
+vec3 color = baseColor * glow;
+
+// --- SOFT CONTRAST ---
+color = pow(color, vec3(0.9));
+
 
   // --- IRIDESCENCE ---
-  float iridescenceStrength = mix(0.15, 0.55, uEnergy);
-  float hue = fresnel * 0.25 + uTime * 0.05;
+  float iridescenceStrength = mix(0.15, 0.35, uEnergy);
+  float hue = fresnel * 0.08 + uMood * 0.05;
 
   vec3 iridescent = hueShift(color, hue);
   color = mix(color, iridescent, fresnel * iridescenceStrength);
 
+  // bias overall palette toward cool
+color = mix(color, color * vec3(0.85, 0.9, 1.05), 0.4);
+
+
   // --- SURFACE FRACTAL DETAIL ---
 float surfaceFractal = sdfFractal(p * 0.9);
-float fractalMask = smoothstep(0.7, 0.1, surfaceFractal);\
+float fractalMask = smoothstep(0.7, 0.1, surfaceFractal);
 
 // subtle spectral glow split
 color.r += fresnel * 0.1;
@@ -239,41 +266,52 @@ const FractalMaterial = shaderMaterial(
 
 extend({ FractalMaterial });
 
-export default function FractalSDF({ data }) {
+export default function FractalSDF({ rmsRef, bandsRef, beatRef }) {
   const mat = useRef();
   const smoothedEnergy = useRef(0);
   const mood = useRef(0);
+  const beatEnergy = useRef(0);
 
   useFrame((state, delta) => {
-    if (!data || !mat.current) return;
+    if (!mat.current || !rmsRef) return;
 
-    const t = Math.floor(state.clock.elapsedTime * 60);
-    const rms = data.rms?.[t % data.rms.length] ?? 0;
+    const rms = rmsRef.current ?? 0;
+    const beat = beatRef?.current ?? 0;
+
+    const energyTarget = Math.pow(rms, 0.7); // perceptual curve
 
     smoothedEnergy.current = THREE.MathUtils.damp(
       smoothedEnergy.current,
-      rms,
+      energyTarget,
       6,
       delta
     );
 
-    mat.current.uTime = state.clock.elapsedTime;
-    mat.current.uEnergy = smoothedEnergy.current;
-
-    const centroid = data.centroid?.[t % data.centroid.length] ?? 0;
-
-    // normalize roughly
-    const energyNorm = THREE.MathUtils.clamp(
-      smoothedEnergy.current * 2.0,
-      0,
-      1
+    // accumulate beat impulse
+    beatEnergy.current = THREE.MathUtils.damp(
+      beatEnergy.current,
+      beat,
+      12,
+      delta
     );
-    const brightnessNorm = THREE.MathUtils.clamp(centroid / 4000, 0, 1);
 
-    // mood aixs
-    const moodTarget = energyNorm * 0.6 + brightnessNorm * 0.4;
-    mood.current = THREE.MathUtils.damp(mood.current, moodTarget, 1.5, delta);
-    mat.current.uMood = mood.current;
+    mat.current.uTime = state.clock.elapsedTime;
+    mat.current.uEnergy = smoothedEnergy.current + beatEnergy.current * 1.2;
+
+    beatRef.current = Math.max(0, beatRef.current - 0.04);
+
+    // ---- MOOD from real-time bands ----
+    if (bandsRef?.current) {
+      const moodTarget = THREE.MathUtils.clamp(
+        smoothedEnergy.current * 0.6 + beatEnergy.current * 0.8,
+        0,
+        1
+      );
+
+      mood.current = THREE.MathUtils.damp(mood.current, moodTarget, 1.8, delta);
+
+      mat.current.uMood = mood.current;
+    }
   });
 
   return (
