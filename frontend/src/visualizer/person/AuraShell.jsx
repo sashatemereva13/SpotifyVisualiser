@@ -4,12 +4,16 @@ import * as THREE from "three";
 
 export default function AuraShell({
   children,
+  energy = 0,
+  mood,
   particleCount = 40,
   radius = 0.35,
   height = 0.6,
 }) {
   const groupRef = useRef();
   const particlesRef = useRef();
+
+  const rolloff = mood?.current?.rolloff ?? 0;
 
   const particles = useMemo(() => {
     const arr = new Float32Array(particleCount * 3);
@@ -31,11 +35,9 @@ export default function AuraShell({
     const t = state.clock.getElapsedTime();
     if (!groupRef.current) return;
 
-    // gentle orbit
-    groupRef.current.rotation.y = t * 0.15;
+    groupRef.current.position.y = Math.sin(t * 0.6) * (0.02 + energy * 0.05);
 
-    // soft breathing drift
-    groupRef.current.position.y = Math.sin(t * 0.6) * 0.03;
+    groupRef.current.rotation.y = t * (0.1 + rolloff * 0.4);
 
     if (particlesRef.current) {
       particlesRef.current.rotation.y = -t * 0.25;
@@ -46,16 +48,16 @@ export default function AuraShell({
     <>
       <group ref={groupRef}>
         {/* Glow shell */}
-        <mesh scale={1.1}>
+        {/* <mesh scale={1.1}>
           <capsuleGeometry args={[0.4, radius * 1.2, 24, 24]} />
           <meshBasicMaterial
             color="#1DE9B6"
             transparent
-            opacity={0.5}
+            opacity={0.1}
             blending={THREE.AdditiveBlending}
             depthWrite={false}
           />
-        </mesh>
+        </mesh> */}
 
         {/* Orbiting particles */}
         <points ref={particlesRef}>
