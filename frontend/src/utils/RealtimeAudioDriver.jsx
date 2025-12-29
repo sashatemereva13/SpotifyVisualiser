@@ -1,38 +1,21 @@
 /**
  * RealtimeAudioDriver
  * ------------------------------------------------
+ * LIVE audio analysis engine (Web Audio API).
+ *
  * Responsibilities:
- *
- * - Connects the SINGLE shared HTMLAudioElement to the Web Audio API
- * - Extracts REAL-TIME audio features every frame:
+ * - Bind a SINGLE MediaElementSourceNode to the audio element
+ * - Extract real-time audio features every frame:
  *     • RMS (overall energy)
+ *     • Beat impulses (energy spikes)
  *     • Frequency bands (low / mid / high)
- *     • Beat impulses (simple energy-based detection)
- *
- * This file is the LIVE audio analysis engine.
- * It runs continuously while audio is playing.
+ * - Drive the playback state machine (anticipation → playing)
  *
  * IMPORTANT ARCHITECTURAL RULES:
  * ------------------------------------------------
- * - The HTMLAudioElement must already exist and be playing.
- * - ONLY ONE MediaElementSourceNode may ever be created
- *   for a given audio element (Web Audio API constraint).
- * - We branch the signal graph (analyser + destination),
- *   NOT the audio element itself.
- *
- * Data flow:
- *   audio (HTMLAudioElement)
- *        ↓
- *   AudioContext → AnalyserNode
- *        ↓
- *   rmsRef / bandsRef / beatRef (updated every frame)
- *
- * These refs are consumed by:
- *   - CentralAura (body movement, breathing)
- *   - FractalSDF (shape distortion, glow, mood)
- *
- * Mental model:
- *   This is the "microphone + heartbeat sensor" of the system.
+ * - One MediaElementSourceNode per HTMLAudioElement (FOREVER)
+ * - Audio playback is routed through AudioContext.destination
+ * - This component WRITES audio refs, others only READ
  */
 
 import { useEffect, useRef } from "react";
@@ -43,98 +26,81 @@ export default function RealtimeAudioDriver({
   rmsRef,
   bandsRef,
   beatRef,
+  audioReadyRef,
+  playbackStateRef,
 }) {
+  /* ---------------- Web Audio Nodes ---------------- */
   const ctxRef = useRef(null);
-  const sourceRef = useRef(null);
   const analyserRef = useRef(null);
   const dataRef = useRef(null);
 
-  // audio identity guard
+  /* ---------------- Identity Guards ---------------- */
   const boundAudioRef = useRef(null);
 
-  // smoothing helpers
+  /* ---------------- RMS Smoothing ---------------- */
   const rmsSmoothedRef = useRef(0);
   const rmsHistory = useRef([]);
 
+  /* --------------------------------------------------
+     Web Audio graph setup (runs on audio change)
+  -------------------------------------------------- */
   useEffect(() => {
     if (!audio) return;
 
-    // if that exact element was wired already, do nothing
+    // Prevent rebinding the same audio element
     if (boundAudioRef.current === audio && analyserRef.current) return;
-
-    // If a new audio element arrives
-    // cleanly tear down previous graph
-    cleanupGraph();
-
     boundAudioRef.current = audio;
 
-    // create or reuse audio context
+    // Create or reuse AudioContext
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     const ctx = ctxRef.current ?? new AudioCtx();
     ctxRef.current = ctx;
 
-    // ensure context is running
-    // prevention for Safari
+    // Safari / iOS safety
     if (ctx.state === "suspended") {
-      ctx.resume().catch(() => {
-        // if resume fails, visuals will stay at null
-        // avoids hard crash
-      });
+      ctx.resume().catch(() => {});
     }
 
-    // only one media element source node may be created
-    // for a given HTMLAudioElement
-    // prevention for react Strict Mode that runs twice
+    // 🔒 ONE MediaElementSourceNode per audio element
     let source = audio.__mediaSourceNode;
-
     if (!source) {
       source = ctx.createMediaElementSource(audio);
       audio.__mediaSourceNode = source;
     }
 
-    sourceRef.current = source;
-    source.connect(ctx.destination);
+    // 🔊 Connect to speakers ONCE
+    if (!source.__connectedToDestination) {
+      source.connect(ctx.destination);
+      source.__connectedToDestination = true;
+    }
 
+    // 📊 Analysis branch
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 1024;
-    analyser.smoothingTimeConstant = 0.85; // for the visuals
+    analyser.smoothingTimeConstant = 0.85;
     analyserRef.current = analyser;
 
-    //connect source -> analyser -> destination
     source.connect(analyser);
-
     dataRef.current = new Uint8Array(analyser.frequencyBinCount);
 
     return () => {
-      // in strict mode the cleanup runs during the 'test unmount'
-      cleanupGraph(false);
+      // DO NOT disconnect source (permanent binding)
+      try {
+        analyser.disconnect();
+      } catch {}
+
+      analyserRef.current = null;
+      dataRef.current = null;
+
+      rmsHistory.current = [];
+      rmsSmoothedRef.current = 0;
+      if (beatRef) beatRef.current = 0;
     };
   }, [audio]);
 
-  function cleanupGraph(alsoCloseContext = false) {
-    try {
-      if (sourceRef.current) sourceRef.current.disconnect();
-    } catch {}
-
-    try {
-      if (analyserRef.current) analyserRef.current.disconnect();
-    } catch {}
-
-    sourceRef.current = null;
-    analyserRef.current = null;
-    dataRef.current = null;
-
-    rmsHistory.current = [];
-    rmsSmoothedRef.current = 0;
-    if (beatRef) beatRef.current = 0;
-
-    if (alsoCloseContext && ctxRef.current) {
-      // keep context alice across track changes
-      ctxRef.current.close().catch(() => {});
-      ctxRef.current = null;
-    }
-  }
-
+  /* --------------------------------------------------
+     Per-frame audio analysis
+  -------------------------------------------------- */
   useFrame((_, delta) => {
     const analyser = analyserRef.current;
     const data = dataRef.current;
@@ -142,7 +108,7 @@ export default function RealtimeAudioDriver({
 
     analyser.getByteFrequencyData(data);
 
-    // ---- RMS ----
+    /* ---------------- RMS ---------------- */
     let sumSq = 0;
     for (let i = 0; i < data.length; i++) {
       const v = data[i] / 255;
@@ -151,58 +117,60 @@ export default function RealtimeAudioDriver({
 
     const rmsRaw = Math.sqrt(sumSq / data.length);
 
-    // smooth RMS for nicer motion
-    // exponential smoothing
-    const smoothing = 1 - Math.pow(0.001, delta); // frame-rate independent
-    const rmsSmoothed =
-      rmsSmoothedRef.current + (rmsRaw - rmsSmoothedRef.current) * smoothing;
-    rmsSmoothedRef.current = rmsSmoothed;
+    // Frame-rate independent exponential smoothing
+    const smoothing = 1 - Math.pow(0.001, delta);
+    rmsSmoothedRef.current += (rmsRaw - rmsSmoothedRef.current) * smoothing;
 
-    // scale for visuals
-    const rmsVisual = Math.min(1, rmsSmoothed * 4.0);
+    const rmsVisual = Math.min(1, rmsSmoothedRef.current * 4.0);
     if (rmsRef) rmsRef.current = rmsVisual;
 
-    // ---- BEAT DETECTION ----
-    rmsHistory.current.push(rmsRaw);
-    if (rmsHistory.current.length > 24) {
-      rmsHistory.current.shift();
+    /* ---------------- AUDIO READY ---------------- */
+    if (!audioReadyRef.current && rmsVisual > 0.02) {
+      audioReadyRef.current = true;
     }
+
+    /* ---------------- BEAT DETECTION ---------------- */
+    rmsHistory.current.push(rmsRaw);
+    if (rmsHistory.current.length > 24) rmsHistory.current.shift();
 
     const avg =
       rmsHistory.current.reduce((a, b) => a + b, 0) / rmsHistory.current.length;
 
-    const threshold = 1.6;
-    const minEnergy = 0.05;
-
-    if (rmsRaw > avg * threshold && rmsRaw > minEnergy) {
+    if (rmsRaw > avg * 1.6 && rmsRaw > 0.05) {
       if (beatRef) beatRef.current = 1.0;
     }
 
-    // decay impulse
-    // frame rate independent
-    const decayPerSecond = 2.5;
-    if (beatRef)
-      beatRef.current = Math.max(0, beatRef.current - decayPerSecond * delta);
+    // Beat decay (seconds-based)
+    if (beatRef) {
+      beatRef.current = Math.max(0, beatRef.current - 2.5 * delta);
+    }
 
-    // ---- Frequency Bands ----
+    /* ---------------- FREQUENCY BANDS ---------------- */
     if (bandsRef) {
-      const lowEnd = 40;
-      const midEnd = 160;
+      let low = 0,
+        mid = 0,
+        high = 0;
 
-      let lowSum = 0;
-      for (let i = 0; i < lowEnd; i++) lowSum += data[i];
+      for (let i = 0; i < 40; i++) low += data[i];
+      for (let i = 40; i < 160; i++) mid += data[i];
+      for (let i = 160; i < data.length; i++) high += data[i];
 
-      let midSum = 0;
-      for (let i = lowEnd; i < midEnd; i++) midSum += data[i];
+      bandsRef.current = {
+        low: low / (40 * 255),
+        mid: mid / (120 * 255),
+        high: high / ((data.length - 160) * 255),
+      };
+    }
 
-      let highSum = 0;
-      for (let i = midEnd; i < data.length; i++) highSum += data[i];
+    /* ---------------- STATE MACHINE ---------------- */
+    if (!playbackStateRef) return;
 
-      const low = lowSum / (lowEnd * 255);
-      const mid = midSum / ((midEnd - lowEnd) * 255);
-      const high = highSum / ((data.length - midEnd) * 255);
+    if (audioReadyRef.current && playbackStateRef.current === "anticipation") {
+      playbackStateRef.current = "awakening";
+    }
 
-      bandsRef.current = { low, mid, high };
+    if (beatRef.current > 0.9 && playbackStateRef.current === "awakening") {
+      playbackStateRef.current = "playing";
     }
   });
 
