@@ -14,10 +14,10 @@ export default function EnergyMaterial({ energy, hue }) {
         iridescence={1.3}
         iridescenceIOR={2.6}
         iridescenceThicknessRange={[200, 800]}
-        emissive="#151514"
+        emissive="#000000"
         emissiveIntensity={0.4 + energy * 0.8}
         transparent
-        opacity={0.6}
+        opacity={0.2}
         side={THREE.DoubleSide}
       />
     </>
