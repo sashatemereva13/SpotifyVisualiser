@@ -1,9 +1,24 @@
 import FractalSDF from "./FractalSDF";
 
-export default function FractalNode({ scale = 1, rmsRef, bandsRef, beatRef }) {
+export default function FractalNode({
+  scale = 1,
+  rmsRef,
+  bandsRef,
+  beatRef,
+  structuralRef,
+  audioReadyRef,
+  playbackStateRef,
+}) {
   return (
-    <group position={[0, 0, -5]} scale={scale}>
-      <FractalSDF rmsRef={rmsRef} bandsRef={bandsRef} beatRef={beatRef} />
+    <group position={[-1, 0, -5]} scale={scale}>
+      <FractalSDF
+        rmsRef={rmsRef}
+        bandsRef={bandsRef}
+        beatRef={beatRef}
+        structuralRef={structuralRef}
+        audioReadyRef={audioReadyRef}
+        playbackStateRef={playbackStateRef}
+      />
     </group>
   );
 }

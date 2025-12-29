@@ -1,52 +1,18 @@
-/**
- * AudioPlayer
- * ---------------------------------------------
- * Responsibilities:
- *
- * 1) REAL-TIME AUDIO PLAYBACK (Web Audio API)
- *    - Creates and maintains a single HTMLAudioElement
- *    - This audio element is:
- *        • played to the user
- *        • analyzed in real time via AudioContext + AnalyserNode
- *    - Drives live visuals:
- *        • RMS (energy)
- *        • frequency bands
- *        • beat impulses
- *
- * 2) OFFLINE / STRUCTURAL AUDIO ANALYSIS (Backend)
- *    - Sends the uploaded audio file once to the backend (librosa)
- *    - Receives precomputed analysis:
- *        • tempo
- *        • centroid
- *        • RMS timeline
- *        • spectral features
- *    - Used for slow, structural, or identity-level visuals
- *
- * IMPORTANT ARCHITECTURAL NOTES:
- * ---------------------------------------------
- * - The HTMLAudioElement is created ONCE and reused.
- * - Only ONE MediaElementSourceNode may ever be created
- *   from this audio element (Web Audio API constraint).
- * - Real-time analysis MUST NOT rely on backend data.
- * - Backend analysis is static and runs once per upload.
- *
- * Mental model:
- *   Backend analysis = "sheet music"
- *   Web Audio API    = "musician playing live"
- */
-
 export default function AudioPlayer({ setAudio, onAnalysis }) {
-  async function handlePlay(e) {
-    const file = e.target.files[0];
+  async function handleFile(file) {
     if (!file) return;
 
     const audio = new Audio(URL.createObjectURL(file));
     audio.crossOrigin = "anonymous";
+
     await audio.play();
+    setAudio(audio);
 
-    setAudio(audio); // 🔑 triggers render
+    audio.onended = () => {
+      audio.dispatchEvent(new Event("ended-by-user"));
+    };
 
-    // backend analysis (once)
+    // Backend analysis (once)
     const formData = new FormData();
     formData.append("file", file);
 
@@ -60,5 +26,45 @@ export default function AudioPlayer({ setAudio, onAnalysis }) {
     onAnalysis(data.analysis);
   }
 
-  return <input type="file" accept="audio/*" onChange={handlePlay} />;
+  function onInputChange(e) {
+    handleFile(e.target.files[0]);
+  }
+
+  function onDrop(e) {
+    e.preventDefault();
+    handleFile(e.dataTransfer.files[0]);
+  }
+
+  return (
+    <div
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={onDrop}
+      className="
+        fixed inset-0 z-20
+        flex items-center justify-center
+        text-white
+        cursor-pointer
+        bg-black/40 backdrop-blur-md
+        transition-opacity
+        hover:bg-black/50
+      "
+    >
+      <label className="flex flex-col items-center gap-4">
+        <span className="text-2xl font-display tracking-wide">
+          Drop music or click to begin
+        </span>
+
+        <span className="text-sm opacity-70">
+          An emotional body reacting to rhythm & frequency
+        </span>
+
+        <input
+          type="file"
+          accept="audio/*"
+          onChange={onInputChange}
+          className="hidden"
+        />
+      </label>
+    </div>
+  );
 }

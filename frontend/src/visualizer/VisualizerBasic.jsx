@@ -1,16 +1,22 @@
-import { useMemo, useRef } from "react";
+import { useRef, useEffect } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import * as THREE from "three";
 import FractalNode from "./fractal/FractalNode";
 import CentralAura from "./person/CentralAura";
 import { OrbitControls } from "@react-three/drei";
 import RealtimeAudioDriver from "../utils/RealtimeAudioDriver";
 import StructuralAudioDriver from "../utils/StructuralAudioDriver";
+import PlaybackStateController from "../utils/PlaybackStateController";
 
-export default function VisualizerBasic({ audio, data }) {
+export default function VisualizerBasic({ audio, data, onPlaybackChange }) {
   const rmsRef = useRef(0);
   const bandsRef = useRef({ low: 0, mid: 0, high: 0 });
   const beatRef = useRef(0);
+  const audioReadyRef = useRef(false);
+
+  const playbackStateRef = useRef("idle");
+  /*
+    idle → anticipation → awakening → playing → ending → idle
+  */
 
   const structuralRef = useRef({
     energy: 0,
@@ -19,45 +25,80 @@ export default function VisualizerBasic({ audio, data }) {
     zcr: 0,
   });
 
+  /* -------------------------------
+     AUDIO END → ENDING
+  -------------------------------- */
+  useEffect(() => {
+    if (!audio) return;
+
+    const handleEnd = () => {
+      playbackStateRef.current = "ending";
+      onPlaybackChange?.(false);
+    };
+
+    audio.addEventListener("ended", handleEnd);
+
+    return () => {
+      audio.removeEventListener("ended", handleEnd);
+    };
+  }, [audio]);
+
   return (
-    <>
-      <Canvas camera={{ position: [0, 0, 12], fov: 45 }}>
-        <ambientLight intensity={0.4} />
-        <directionalLight position={[5, 5, 5]} intensity={1.2} />
-        {/* <CameraOrbit /> */}
+    <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
+      <ambientLight intensity={0.4} />
+      <directionalLight position={[5, 5, 5]} intensity={1.2} />
 
-        <group renderOrder={0}>
-          <FractalNode
-            scale={2}
-            rmsRef={rmsRef}
-            bandsRef={bandsRef}
-            beatRef={beatRef}
-          />
-        </group>
+      <PlaybackStateController
+        audio={audio}
+        beatRef={beatRef}
+        audioReadyRef={audioReadyRef}
+        playbackStateRef={playbackStateRef}
+        onPlaybackChange={onPlaybackChange}
+      />
 
-        <OrbitControls />
+      <FractalNode
+        scale={2}
+        rmsRef={rmsRef}
+        bandsRef={bandsRef}
+        beatRef={beatRef}
+        structuralRef={structuralRef}
+        audioReadyRef={audioReadyRef}
+        playbackStateRef={playbackStateRef}
+      />
 
-        {audio && (
-          <RealtimeAudioDriver
-            audio={audio}
-            rmsRef={rmsRef}
-            bandsRef={bandsRef}
-            beatRef={beatRef}
-          />
-        )}
+      <OrbitControls
+        enabled={playbackStateRef.current === "playing"}
+        enableZoom={false}
+        enablePan={false}
+        rotateSpeed={0.25}
+      />
 
-        {audio && data && (
-          <StructuralAudioDriver
-            audio={audio}
-            analysis={data}
-            structuralRef={structuralRef}
-          />
-        )}
+      {audio && (
+        <RealtimeAudioDriver
+          audio={audio}
+          rmsRef={rmsRef}
+          bandsRef={bandsRef}
+          beatRef={beatRef}
+          audioReadyRef={audioReadyRef}
+        />
+      )}
 
-        <group position={[0, -1, -3]} renderOrder={1}>
-          <CentralAura beatRef={beatRef} rmsRef={rmsRef} bandsRef={bandsRef} />
-        </group>
-      </Canvas>
-    </>
+      {audio && data && (
+        <StructuralAudioDriver
+          audio={audio}
+          analysis={data}
+          structuralRef={structuralRef}
+        />
+      )}
+
+      <CentralAura
+        beatRef={beatRef}
+        rmsRef={rmsRef}
+        bandsRef={bandsRef}
+        structuralRef={structuralRef}
+        audioReadyRef={audioReadyRef}
+        playbackStateRef={playbackStateRef}
+      />
+    </Canvas>
   );
 }
