@@ -2,6 +2,7 @@ import { shaderMaterial } from "@react-three/drei";
 import { extend, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { useRef } from "react";
+import { fragment } from "./fragment";
 
 const vertex = `
 varying vec2 vUv;
