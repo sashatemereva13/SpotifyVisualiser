@@ -1,5 +1,12 @@
 # 🎧 Spotify Visualiser
 
+An emotional body reacting to rhythm and frequency — a living presence you can stare at while listening to music.
+
+Spotify users already listen passively
+This adds visual engagement without cognitive load
+It increases session duration and emotional immersion
+It’s not a game, not a UI — it’s a presence
+
 We intentionally chose to manage our own audio database instead of relying on Spotify, in order to retain full control over signal analysis, playback quality, and data modelling. This allowed us to perform advanced analysis and build a richer visualization pipeline.
 
 Interactive 3D Music Visualisation using Audio Analysis + ThreeJS
