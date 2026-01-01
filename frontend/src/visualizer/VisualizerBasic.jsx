@@ -7,6 +7,15 @@ import RealtimeAudioDriver from "../utils/RealtimeAudioDriver";
 import StructuralAudioDriver from "../utils/StructuralAudioDriver";
 import PlaybackStateController from "../utils/PlaybackStateController";
 
+const isMobile =
+  typeof window !== "undefined" &&
+  window.matchMedia("(pointer: coarse)").matches;
+
+const dpr =
+  typeof window !== "undefined"
+    ? Math.min(window.devicePixelRatio, isMobile ? 1.25 : 1.75)
+    : 1;
+
 export default function VisualizerBasic({ audio, data, onPlaybackChange }) {
   const rmsRef = useRef(0);
   const bandsRef = useRef({ low: 0, mid: 0, high: 0 });
@@ -44,7 +53,7 @@ export default function VisualizerBasic({ audio, data, onPlaybackChange }) {
   }, [audio]);
 
   return (
-    <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
+    <Canvas dpr={dpr} camera={{ position: [0, 0, 5], fov: 45 }}>
       <ambientLight intensity={0.4} />
       <directionalLight position={[5, 5, 5]} intensity={1.2} />
 
