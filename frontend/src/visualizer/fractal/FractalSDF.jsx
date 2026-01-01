@@ -1,8 +1,12 @@
 import { shaderMaterial } from "@react-three/drei";
 import { extend, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { fragment } from "./fragment";
+
+const isMobile =
+  typeof window !== "undefined" &&
+  window.matchMedia("(pointer: coarse)").matches;
 
 const vertex = `
 varying vec2 vUv;
@@ -19,6 +23,7 @@ const FractalMaterial = shaderMaterial(
     uEnergy: 0,
     uMood: 0,
     uAnticipation: 0,
+    uQuality: isMobile ? 0.0 : 1.0,
   },
   vertex,
   fragment
@@ -43,10 +48,24 @@ export default function FractalSDF({
   const readyBlend = useRef(0);
   const anticipation = useRef(0);
 
+  useEffect(() => {
+    if (mat.current) {
+      mat.current.uQuality = isMobile ? 0.0 : 1.0;
+    }
+  }, []);
+
   useFrame((state, delta) => {
     if (!mat.current || !rmsRef) return;
 
     const playbackState = playbackStateRef?.current ?? "idle";
+
+    if (
+      playbackState === "idle" &&
+      readyBlend.current < 0.01 &&
+      anticipation.current < 0.01
+    ) {
+      return;
+    }
 
     /* --------------------------------------------------
        1. ANTICIPATION (state-driven, slow)
@@ -124,7 +143,8 @@ export default function FractalSDF({
 
   return (
     <mesh>
-      <planeGeometry args={[3, 3, 128, 128]} />
+      <planeGeometry args={[3, 3, isMobile ? 64 : 128, isMobile ? 64 : 128]} />
+
       <fractalMaterial ref={mat} depthWrite={false} depthTest />
     </mesh>
   );
