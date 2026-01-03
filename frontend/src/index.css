@@ -1,6 +1,10 @@
 @import "tailwindcss";
 @import "./styles/fonts.css";
 
+:root {
+  --presence: 0;
+}
+
 @theme {
   /* Fonts */
   --font-primary: "Montserrat";
@@ -26,4 +30,11 @@
   /* Neutral UI */
   --color-muted: #8a93a6; /* secondary text */
   --color-light: #e6eaf2; /* primary text */
+}
+
+/* Intro overlay dissolve */
+.intro-overlay {
+  opacity: calc(1 - var(--presence));
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: opacity;
 }
