@@ -8,6 +8,7 @@ export default function InstrumentRing({
   color = "#ffffff",
   speed = 0.5,
   intensity = 0.3,
+  opacity = 0.5,
   y = 0,
 }) {
   const ringRef = useRef();
@@ -41,9 +42,9 @@ export default function InstrumentRing({
       <meshStandardMaterial
         color={color}
         emissive={color}
-        emissiveIntensity={1.2}
+        emissiveIntensity={2}
         transparent
-        opacity={0.85}
+        opacity={opacity}
         blending={THREE.AdditiveBlending}
       />
     </mesh>

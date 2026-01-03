@@ -1,295 +1,276 @@
 import { useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import EnergyMaterial from "./EnergyMaterial";
 import AuraShell from "./AuraShell";
+import InstrumentRings from "../InstrumentRings.jsx";
 
-/**
- * CentralAura
- * --------------------------------------------------
- * Embodied humanoid form reacting to music.
- *
- * - Realtime audio (RMS, beats, bands) drives motion
- * - Structural (backend) audio drives mood & color
- * - totalEnergyRef is the single source of truth
- * - readyBlend ensures smooth visual startup
- */
+/* --------------------------------------------------
+   Choreography timing (ART DIRECTION)
+-------------------------------------------------- */
+const DANCE_DURATION = 1.0;
+const FREEZE_DURATION = 0.6;
+const DISASSEMBLE_DURATION = 13.5;
+const LOOP_PAUSE = 2.0; // seconds fully assembled before restarting]
+
+const TOTAL_DURATION =
+  DANCE_DURATION + FREEZE_DURATION + DISASSEMBLE_DURATION + LOOP_PAUSE;
+
+/* --------------------------------------------------
+   Helpers
+-------------------------------------------------- */
+
+function createPart(home) {
+  return {
+    home: new THREE.Vector3(...home),
+    pos: new THREE.Vector3(),
+    velocity: new THREE.Vector3(),
+    angle: Math.random() * Math.PI * 2,
+    radius: 0,
+    spin: 0.6 + Math.random() * 0.6,
+    burst: 0,
+    ref: useRef(),
+  };
+}
+
+// stagger order: arms → legs → torso → head
+function partDelay(index) {
+  if (index === 2 || index === 3) return 0.0; // arms
+  if (index === 4 || index === 5) return 0.5; // legs
+  if (index === 1) return 1.1; // torso
+  return 1.6; // head
+}
+
 export default function CentralAura({
   rmsRef,
   beatRef,
-  bandsRef,
   structuralRef,
-  audioReadyRef, // 🔑 MUST be passed
+  audioReadyRef,
 }) {
-  // ---- Group refs ----
   const groupRef = useRef();
+  const { camera } = useThree();
 
-  // ---- Energy accumulation ----
-  const energyRef = useRef(0); // smoothed RMS
-  const beatEnergyRef = useRef(0); // beat impulse
-  const totalEnergyRef = useRef(0); // final combined energy
+  /* ------------------------------
+     Energy & Time
+  ------------------------------ */
+  const energyRef = useRef(0);
+  const beatImpulseRef = useRef(0);
+  const beatPhaseRef = useRef(0);
+
+  const disassemble = useRef(0);
+  const readyBlend = useRef(0);
+
+  const musicTimeRef = useRef(0);
+  const wasPlayingRef = useRef(false);
+
+  /* ------------------------------
+     Visual
+  ------------------------------ */
+  const hueRef = useRef(0.3);
   const materialEnergyRef = useRef(0);
 
-  // ---- Visual modulation ----
-  const hueRef = useRef(0.3);
-  const readyBlend = useRef(0); // smooth intro gate
+  /* ------------------------------
+     Parts
+  ------------------------------ */
+  const head = createPart([0, 2, 0]);
+  const torso = createPart([0, 0.9, 0]);
+  const leftArm = createPart([-0.4, 1.6, 0.3]);
+  const rightArm = createPart([0.4, 1.6, 0.3]);
+  const leftLeg = createPart([-0.15, -0.5, 0]);
+  const rightLeg = createPart([0.15, -0.5, 0]);
 
-  // ---- Body parts ----
-  const headRef = useRef();
-  const torsoRef = useRef();
-  const leftArmRef = useRef();
-  const rightArmRef = useRef();
-  const leftLegRef = useRef();
-  const rightLegRef = useRef();
+  const parts = [head, torso, leftArm, rightArm, leftLeg, rightLeg];
 
-  // ----------------- Animation Loop -----------------
-  useFrame(({ clock }, delta) => {
-    if (!groupRef.current || !rmsRef) return;
+  /* ------------------------------
+     Screen bounds
+  ------------------------------ */
+  const getBounds = () => {
+    const depth = 7;
+    const vFov = THREE.MathUtils.degToRad(camera.fov);
+    const height = 2 * Math.tan(vFov / 2) * depth;
+    const width = height * camera.aspect;
+    return { width: width * 0.45, height: height * 0.45 };
+  };
 
-    /* ---------------------------------------------
-       1. READY BLEND
-       Smooth fade-in once audio becomes stable
-    --------------------------------------------- */
-    readyBlend.current = THREE.MathUtils.damp(
-      readyBlend.current,
-      audioReadyRef?.current ? 1 : 0,
-      2,
-      delta
-    );
+  /* ------------------------------
+     Animation
+  ------------------------------ */
+  useFrame((state, delta) => {
+    if (!groupRef.current) return;
 
-    const readiness = readyBlend.current;
+    const { width, height } = getBounds();
 
-    /* ---------------------------------------------
-       2. REALTIME AUDIO INPUT
-    --------------------------------------------- */
-    const rms = rmsRef.current ?? 0;
+    /* --- Track music time --- */
+    if (audioReadyRef?.current) {
+      musicTimeRef.current += delta;
+      wasPlayingRef.current = true;
+    } else if (wasPlayingRef.current) {
+      musicTimeRef.current = 0;
+      wasPlayingRef.current = false;
+    }
+
+    /* --- Energy --- */
+    const rms = rmsRef?.current ?? 0;
     const beat = beatRef?.current ?? 0;
-    const bands = bandsRef?.current;
-    const low = bands?.low ?? 0;
-    const high = bands?.high ?? 0;
-
-    /* ---------------------------------------------
-       3. SMOOTH ENERGY CURVES
-    --------------------------------------------- */
-    // RMS → perceptual energy
-    const energyTarget = THREE.MathUtils.clamp(Math.pow(rms * 3.0, 0.7), 0, 1);
 
     energyRef.current = THREE.MathUtils.damp(
       energyRef.current,
-      energyTarget,
+      Math.pow(rms * 3, 0.7),
       6,
       delta
     );
 
-    // Beat impulse accumulation
-    beatEnergyRef.current = THREE.MathUtils.damp(
-      beatEnergyRef.current,
-      beat,
-      10,
+    if (beat > 0.1) beatImpulseRef.current = 1;
+    beatImpulseRef.current = THREE.MathUtils.damp(
+      beatImpulseRef.current,
+      0,
+      3,
       delta
     );
 
-    /* ---------------------------------------------
-       4. TOTAL ENERGY (SINGLE SOURCE OF TRUTH)
-    --------------------------------------------- */
-    totalEnergyRef.current =
-      (energyRef.current + beatEnergyRef.current * 1.2) * readiness;
+    /* --- Beat subdivision phase (assembled dance clock) --- */
+    beatPhaseRef.current += delta * (2.0 + energyRef.current * 2.5);
 
+    /* --- Choreography timeline --- */
+    let disassembleTarget = 0;
+    let freezeFactor = 0;
+
+    if (musicTimeRef.current < DANCE_DURATION) {
+      disassembleTarget = 0;
+    } else if (musicTimeRef.current < DANCE_DURATION + FREEZE_DURATION) {
+      disassembleTarget = 0;
+      freezeFactor = 1;
+    } else if (
+      musicTimeRef.current <
+      DANCE_DURATION + FREEZE_DURATION + DISASSEMBLE_DURATION
+    ) {
+      disassembleTarget = 1;
+    } else {
+      disassembleTarget = 0;
+    }
+
+    disassemble.current = THREE.MathUtils.damp(
+      disassemble.current,
+      disassembleTarget,
+      1.2,
+      delta
+    );
+
+    const assembledMotion = 1 - disassemble.current;
+
+    if (musicTimeRef.current === 0) {
+      beatImpulseRef.current *= 0.5;
+      beatPhaseRef.current *= 0.5;
+    }
+
+    /* --- Visual identity --- */
+    const centroid = structuralRef?.current?.centroid ?? 0;
+    hueRef.current = THREE.MathUtils.lerp(0.08, 0.65, centroid);
     materialEnergyRef.current = THREE.MathUtils.clamp(
-      totalEnergyRef.current,
+      energyRef.current + beatImpulseRef.current,
       0,
       1
     );
 
-    /* ---------------------------------------------
-       5. STRUCTURAL (BACKEND) INFLUENCE
-    --------------------------------------------- */
-    const structural = structuralRef?.current;
-    const moodEnergy = structural?.energy ?? 0;
-    const centroid = structural?.centroid ?? 0;
-
-    // Color identity from centroid
-    hueRef.current = THREE.MathUtils.lerp(0.08, 0.65, centroid);
-
-    /* ---------------------------------------------
-       6. BODY MOTION
-    --------------------------------------------- */
-    const t = clock.elapsedTime;
-    const groove = t * (0.8 + energyRef.current * 3.0);
-
-    // CORE / TORSO
-    groupRef.current.rotation.y =
-      Math.sin(groove * 0.5) * totalEnergyRef.current * 0.4 +
-      (moodEnergy - 0.5) * 0.1;
-
-    // HEAD
-    if (headRef.current) {
-      headRef.current.rotation.y = THREE.MathUtils.damp(
-        headRef.current.rotation.y,
-        high * 0.6,
-        5,
-        delta
-      );
-
-      headRef.current.rotation.x =
-        Math.sin(groove * 1.2) * totalEnergyRef.current * 0.5;
-
-      headRef.current.rotation.z =
-        Math.sin(groove * 0.8 + 1.2) * totalEnergyRef.current * 0.3;
+    if (musicTimeRef.current > TOTAL_DURATION) {
+      musicTimeRef.current = 0;
     }
 
-    // ARMS (high frequencies = looseness)
-    if (leftArmRef.current && rightArmRef.current) {
-      leftArmRef.current.rotation.z = THREE.MathUtils.damp(
-        leftArmRef.current.rotation.z,
-        high * 0.3,
-        5,
-        delta
+    /* ------------------------------
+       Motion per part
+    ------------------------------ */
+    parts.forEach((p, i) => {
+      if (!p.ref.current) return;
+
+      /* --- Staggered disassembly --- */
+      const localDelay = partDelay(i);
+      const localDisassemble = THREE.MathUtils.clamp(
+        disassemble.current - localDelay * 0.25,
+        0,
+        1
       );
 
-      rightArmRef.current.rotation.z = THREE.MathUtils.damp(
-        rightArmRef.current.rotation.z,
-        -high * 0.3,
-        5,
-        delta
+      /* --- Spiral orbit --- */
+      p.angle +=
+        delta * p.spin * (0.25 + energyRef.current * 0.8) * localDisassemble;
+
+      const targetRadius =
+        localDisassemble * (1.0 + i * 0.28 + energyRef.current * 0.9);
+
+      p.radius = THREE.MathUtils.damp(p.radius, targetRadius, 2, delta);
+
+      /* --- Beat burst --- */
+      p.burst = THREE.MathUtils.damp(p.burst, 0, 4, delta);
+      p.burst += beatImpulseRef.current * (0.3 + i * 0.08) * localDisassemble;
+
+      const spiralOffset = new THREE.Vector3(
+        Math.cos(p.angle),
+        Math.sin(p.angle * 0.7),
+        Math.sin(p.angle)
+      ).multiplyScalar(p.radius + p.burst);
+
+      /* --- Assembled dance (beat-synced) --- */
+      const dancePhase = Math.floor(beatPhaseRef.current * 2) * Math.PI;
+
+      const danceOffset = new THREE.Vector3(
+        Math.sin(dancePhase + i),
+        Math.cos(dancePhase * 0.7 + i),
+        Math.sin(dancePhase * 0.5 + i)
+      ).multiplyScalar(
+        0.07 * energyRef.current * assembledMotion * (1 - freezeFactor)
       );
 
-      leftArmRef.current.rotation.x =
-        Math.sin(groove) * totalEnergyRef.current * 0.6;
+      const targetPos = p.home.clone().add(danceOffset).add(spiralOffset);
 
-      rightArmRef.current.rotation.x =
-        Math.sin(groove + Math.PI) * totalEnergyRef.current * 0.6;
-    }
+      /* --- Soft bounds --- */
+      if (Math.abs(targetPos.x) > width) {
+        p.velocity.x += -Math.sign(targetPos.x) * 0.08;
+      }
+      if (Math.abs(targetPos.y) > height) {
+        p.velocity.y += -Math.sign(targetPos.y) * 0.08;
+      }
 
-    // LEGS
-    if (leftLegRef.current && rightLegRef.current) {
-      leftLegRef.current.rotation.x =
-        Math.sin(groove * 0.9) * totalEnergyRef.current * 0.4;
+      /* --- Reassembly pull --- */
+      p.velocity.addScaledVector(
+        p.home.clone().sub(p.pos),
+        (1 - localDisassemble) * delta * 4
+      );
 
-      rightLegRef.current.rotation.x =
-        Math.sin(groove * 0.9 + Math.PI) * totalEnergyRef.current * 0.4;
-    }
+      /* --- Integrate --- */
+      p.velocity.multiplyScalar(0.88);
+      p.pos.addScaledVector(p.velocity, delta * 6);
 
-    // BREATHING (vertical scale)
-    const breath = 1 + totalEnergyRef.current * 0.2;
-    groupRef.current.scale.y = THREE.MathUtils.damp(
-      groupRef.current.scale.y,
-      breath,
-      4,
-      delta
-    );
+      p.pos.lerp(targetPos, 0.05);
+      p.ref.current.position.copy(p.pos);
+    });
   });
 
-  /* ----------------- Render ----------------- */
+  /* ------------------------------
+     Render
+  ------------------------------ */
   return (
-    <group position={[2, -1, -3]} ref={groupRef} frustumCulled={false}>
-      {/* HEAD */}
-      <group ref={headRef} position={[0, 2, 0]}>
-        <AuraShell
-          audioReadyRef={audioReadyRef}
-          energy={totalEnergyRef.current}
-          mood={structuralRef}
-        >
-          <mesh>
-            <sphereGeometry args={[0.28, 32, 32]} />
-            <EnergyMaterial
-              hue={hueRef.current}
-              energy={materialEnergyRef.current}
-            />
-          </mesh>
-        </AuraShell>
-      </group>
+    <group ref={groupRef} position={[3, -1, -7]} frustumCulled={false}>
+      <InstrumentRings
+        danceEnergy={energyRef.current}
+        beatEnergy={beatImpulseRef.current}
+        disassemble={disassemble.current}
+      />
 
-      {/* TORSO */}
-      <group ref={torsoRef} position={[0, 0.9, 0]}>
-        <AuraShell
-          audioReadyRef={audioReadyRef}
-          energy={totalEnergyRef.current}
-          mood={structuralRef}
-        >
-          <mesh>
-            <capsuleGeometry args={[0.35, 0.9, 12, 24]} />
-            <EnergyMaterial
-              hue={hueRef.current}
-              energy={materialEnergyRef.current}
-            />
-          </mesh>
-        </AuraShell>
-      </group>
-
-      {/* LEGS */}
-      <group ref={leftLegRef} position={[-0.15, -0.5, 0]}>
-        <AuraShell
-          audioReadyRef={audioReadyRef}
-          energy={totalEnergyRef.current}
-          mood={structuralRef}
-        >
-          <mesh>
-            <capsuleGeometry args={[0.12, 1.5, 12, 24]} />
-            <EnergyMaterial
-              hue={hueRef.current}
-              energy={materialEnergyRef.current}
-            />
-          </mesh>
-        </AuraShell>
-      </group>
-
-      <group ref={rightLegRef} position={[0.15, -0.5, 0]}>
-        <AuraShell
-          audioReadyRef={audioReadyRef}
-          energy={totalEnergyRef.current}
-          mood={structuralRef}
-        >
-          <mesh>
-            <capsuleGeometry args={[0.12, 1.5, 12, 24]} />
-            <EnergyMaterial
-              hue={hueRef.current}
-              energy={materialEnergyRef.current}
-            />
-          </mesh>
-        </AuraShell>
-      </group>
-
-      {/* ARMS */}
-      <group
-        ref={leftArmRef}
-        rotation={[Math.PI / 3, 0, Math.PI / 6]}
-        position={[-0.4, 1.6, 0.3]}
-      >
-        <AuraShell
-          audioReadyRef={audioReadyRef}
-          energy={totalEnergyRef.current}
-          mood={structuralRef}
-        >
-          <mesh>
-            <capsuleGeometry args={[0.1, 1, 12, 24]} />
-            <EnergyMaterial
-              hue={hueRef.current}
-              energy={materialEnergyRef.current}
-            />
-          </mesh>
-        </AuraShell>
-      </group>
-
-      <group
-        ref={rightArmRef}
-        rotation={[Math.PI / 3, 0, -Math.PI / 12]}
-        position={[0.4, 1.6, 0.3]}
-      >
-        <AuraShell
-          audioReadyRef={audioReadyRef}
-          energy={totalEnergyRef.current}
-          mood={structuralRef}
-        >
-          <mesh>
-            <capsuleGeometry args={[0.1, 1, 12, 24]} />
-            <EnergyMaterial
-              hue={hueRef.current}
-              energy={materialEnergyRef.current}
-            />
-          </mesh>
-        </AuraShell>
-      </group>
+      {[head, torso, leftArm, rightArm, leftLeg, rightLeg].map((p, i) => (
+        <group key={i} ref={p.ref}>
+          <AuraShell>
+            <mesh position={i === 2 || i === 3 ? [0, -0.6, 0] : undefined}>
+              {i === 0 && <sphereGeometry args={[0.28, 32, 32]} />}
+              {i === 1 && <capsuleGeometry args={[0.35, 0.9, 12, 24]} />}
+              {i > 1 && <capsuleGeometry args={[0.12, 1.5, 12, 24]} />}
+              <EnergyMaterial
+                hue={hueRef.current}
+                energy={materialEnergyRef.current}
+              />
+            </mesh>
+          </AuraShell>
+        </group>
+      ))}
     </group>
   );
 }
