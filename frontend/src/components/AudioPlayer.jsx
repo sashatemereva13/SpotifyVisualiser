@@ -12,12 +12,13 @@ export default function AudioPlayer({ onAnalysis }) {
     formData.append("file", file);
 
     try {
-      const res = await fetch("http://localhost:3000/api/tracks", {
+      const res = await fetch("http://localhost:8000/api/tracks", {
         method: "POST",
         body: formData,
       });
 
       const data = await res.json();
+      console.log("BACKEND RESPONSE:", data);
       onAnalysis?.(data.analysis);
     } catch (err) {
       console.error("Analysis failed", err);

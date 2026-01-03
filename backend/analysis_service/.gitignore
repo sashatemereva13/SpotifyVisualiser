@@ -1,0 +1,5 @@
+.DS_Store
+analysis_output.txt
+*.txt
+SpotifyVisualiser/
+venv/
