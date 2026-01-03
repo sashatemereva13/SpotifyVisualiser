@@ -89,12 +89,6 @@ export default function FractalSDF({
   const lastAdapting = useRef(false);
 
   /* --------------------------------------------------
-     GEOMETRY LOD (react-safe)
-  -------------------------------------------------- */
-
-  const geometrySegments = useRef(isMobile ? 48 : 128);
-
-  /* --------------------------------------------------
      INITIAL QUALITY SETUP
   -------------------------------------------------- */
 
@@ -163,19 +157,6 @@ export default function FractalSDF({
     if (isAdapting.current !== lastAdapting.current) {
       onPerformanceAdapt?.(isAdapting.current);
       lastAdapting.current = isAdapting.current;
-    }
-
-    /* ----------------------------------------------
-       2. GEOMETRY LOD (tied to quality)
-    ---------------------------------------------- */
-
-    const desiredSegments = Math.round(
-      THREE.MathUtils.lerp(48, 128, quality.current)
-    );
-
-    // Only rebuild geometry if change is meaningful
-    if (Math.abs(desiredSegments - geometrySegments.current) > 8) {
-      geometrySegments.current = desiredSegments;
     }
 
     /* ----------------------------------------------
@@ -271,12 +252,11 @@ export default function FractalSDF({
   ================================================== */
 
   return (
-    <mesh>
-      <planeGeometry
-        key={geometrySegments.current}
-        args={[3, 3, geometrySegments.current, geometrySegments.current]}
-      />
-      <fractalMaterial ref={mat} depthWrite={false} depthTest />
-    </mesh>
+    <fractalMaterial
+      ref={mat}
+      transparent
+      depthWrite={false}
+      depthTest={false}
+    />
   );
 }
