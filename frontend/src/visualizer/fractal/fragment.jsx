@@ -3,11 +3,11 @@ precision highp float;
 
 varying vec2 vUv;
 
-uniform float uTime;
-uniform float uEnergy;
-uniform float uMood;
-uniform float uAnticipation;
-uniform float uQuality; // 0.0 = low, 1.0 = high
+uniform float uTime; // in seconds
+uniform float uEnergy; // 0.0 (quiet) to 1.0 (loud)
+uniform float uMood; // 0.0 (calm) to 1.0 (intense)
+uniform float uAnticipation; // 0.0 to 1.0
+uniform float uQuality; // 0.0 (low) to 1.0 (high)
 
 
 /* -----------------------
@@ -119,10 +119,7 @@ return sdSphere(p,0.9);
   float calm = 1.0 - smoothstep(0.4, 0.8, uEnergy);
   if (calm > 0.6) return dSphere;
 
-  float m1 = smoothstep(0.10, 0.35, uMood);
-  float m2 = smoothstep(0.20, 0.45, uMood);
-  float m3 = smoothstep(0.20, 0.65, uMood);
-  float m4 = smoothstep(0.30, 0.70, uMood);
+  return dSphere;
 
 }
 

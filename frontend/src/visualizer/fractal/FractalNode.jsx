@@ -8,6 +8,9 @@ export default function FractalNode({
   structuralRef,
   audioReadyRef,
   playbackStateRef,
+
+  qualityMode,
+  qualityPreset,
 }) {
   return (
     <group position={[-1, 0, -5]} scale={scale}>
@@ -18,6 +21,8 @@ export default function FractalNode({
         structuralRef={structuralRef}
         audioReadyRef={audioReadyRef}
         playbackStateRef={playbackStateRef}
+        qualityMode={qualityMode}
+        qualityPreset={qualityPreset}
       />
     </group>
   );
