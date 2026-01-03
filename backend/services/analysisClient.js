@@ -1,10 +1,16 @@
-export async function callAnalysisService(filePath) {
-  const baseUrl = process.env.ANALYSIS_SERVICE_URL || "http://localhost:5001";
+import fs from "fs";
+import FormData from "form-data";
 
-  const resp = await fetch(`${baseUrl}/analyze`, {
+export async function callAnalysisService(filePath) {
+  const baseUrl = process.env.ANALYSIS_SERVICE_URL || "http://127.0.0.1:5000";
+
+  const form = new FormData();
+  form.append("file", fs.createReadStream(filePath));
+
+  const resp = await fetch(`${baseUrl}/api/tracks`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ path: filePath }),
+    body: form,
+    headers: form.getHeaders(),
   });
 
   if (!resp.ok) {
