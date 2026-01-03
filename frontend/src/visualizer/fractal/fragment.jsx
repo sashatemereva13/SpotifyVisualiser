@@ -73,7 +73,7 @@ float sdfFractal(vec3 p) {
   float scale = 2.8;
   float d = 1e9;
 
-int maxIter = int(mix(4.0, 6.0, uQuality));
+int maxIter = int(mix(3.0, 6.0, uQuality));
   for (int i = 0; i < 6; i++) {
     if (i >= maxIter) break;
     float it = float(i);
@@ -99,6 +99,9 @@ int maxIter = int(mix(4.0, 6.0, uQuality));
 ------------------------ */
 
 float map(vec3 p) {
+float r = length(p);
+
+
   float energy = smoothstep(0.5, 0.8, uEnergy);
   float beatBoost = smoothstep(0.2, 0.9, uEnergy);
   float beatForce = smoothstep(0.3, 0.9, uEnergy);
@@ -109,6 +112,10 @@ float map(vec3 p) {
   float dBox     = sdBox(p, vec3(0.25));
   float dNebula  = sdSphere(flowWarp(p, uTime * 0.6), 0.9);
 
+  if (r > 2.2) {
+return sdSphere(p,0.9);
+}
+
   float calm = 1.0 - smoothstep(0.4, 0.8, uEnergy);
   if (calm > 0.6) return dSphere;
 
@@ -117,14 +124,6 @@ float map(vec3 p) {
   float m3 = smoothstep(0.20, 0.65, uMood);
   float m4 = smoothstep(0.30, 0.70, uMood);
 
-  float d = dSphere;
-  d = smin(d, dTorus,   0.8 * m1);
-  d = smin(d, dFractal, 0.5 * m2 * (1.0 + beatForce * 2.0));
-  d = smin(d, dBox,     0.25 * m3);
-  d = smin(d, dNebula,  0.9 * m4 * energy);
-
-  d = smin(d, dFractal, 0.35 * m2 * (1.0 + beatBoost * 1.5));
-  return d;
 }
 
 /* -----------------------
@@ -161,7 +160,7 @@ vec3 fakeEnvReflection(vec3 n, vec3 v) {
 float spaceWave(vec3 p) {
   float r = length(p);
 
-  float waveStart = 0.25;
+  float waveStart = 0.55;
   float waveEnd = 1.8;
 
   float band =
@@ -235,9 +234,11 @@ int steps = int(mix(6.0, 8.0, uQuality));
   vec3 color = baseColor * glow;
 
   // waves
-  float wave = spaceWave(p);
   vec3 waveColor = mix(vec3(0.15, 0.55, 0.95), vec3(0.35, 0.85, 1.15), uMood);
-  color += waveColor * wave * 0.35;
+float w = spaceWave(p);
+vec3 negColor = vec3(0.1, 0.0, 0.2); // dark violet
+color += mix(waveColor, negColor, step(0.0, -w)) * abs(w) * 0.35;
+
 
   // contrast + rim
   color = pow(color, vec3(0.9));
@@ -256,7 +257,7 @@ int steps = int(mix(6.0, 8.0, uQuality));
   color = mix(color, color + env, fresnel * 0.6);
 
   // surface fractal detail: keep but cheap-ish (still 1 fractal call)
-  float surfaceFractal = sdfFractal(p * 0.88);
+  float surfaceFractal = sdfFractal(p * 1.38);
   float fractalMask = smoothstep(0.7, 0.2, surfaceFractal);
 
   color.r += fresnel * 0.2;
