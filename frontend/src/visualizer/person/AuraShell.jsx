@@ -103,7 +103,7 @@ export default function AuraShell({
 
         <pointsMaterial
           size={0.025}
-          color="#e9a21d"
+          color="#ffffff"
           transparent
           opacity={0.9}
           blending={THREE.AdditiveBlending}

@@ -3,14 +3,12 @@ import * as THREE from "three";
 
 function PresenceController({ audioReadyRef, presenceRef }) {
   useFrame((_, delta) => {
-    const target = audioReadyRef.current ? 1 : 0;
-
-    console.log("presence", presenceRef.current.toFixed(2));
+    const target = audioReadyRef.current ? 1 : 0.15;
 
     presenceRef.current = THREE.MathUtils.damp(
       presenceRef.current,
       target,
-      0.7,
+      0.9,
       delta
     );
 
