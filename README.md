@@ -1,13 +1,8 @@
-# 🎧 Spotify Visualiser
+# 🎧 Visualiser
 
-An emotional body reacting to rhythm and frequency — a living presence you can stare at while listening to music.
-
-Spotify users already listen passively
-This adds visual engagement without cognitive load
-It increases session duration and emotional immersion
-It’s not a game, not a UI — it’s a presence
-
-We intentionally chose to manage our own audio database instead of relying on Spotify, in order to retain full control over signal analysis, playback quality, and data modelling. This allowed us to perform advanced analysis and build a richer visualization pipeline.
+visualiser.cloud
+A community-driven music visualiser
+where every uploaded song becomes part of a growing audiovisual library.
 
 Interactive 3D Music Visualisation using Audio Analysis + ThreeJS
 
@@ -120,10 +115,11 @@ spotify-visualizer/
 
 ### Clone repo
 
-``` bash
+```bash
 git clone https://github.com/YOUR_USERNAME/spotify-visualizer.git
 cd spotify-visualizer
 ```
+
 ---
 
 ## 🚀 Running the Project
@@ -151,6 +147,7 @@ cd analysis_service
 pip install -r requirements.txt
 python server/app.py
 ```
+
 ---
 
 ## 🧪 How the App Works (MVP Flow)
@@ -187,3 +184,4 @@ python server/app.py
 feat(visualizer): add bass-reactive particles
 fix(api): handle missing analysis data
 docs(readme): add setup instructions
+```
