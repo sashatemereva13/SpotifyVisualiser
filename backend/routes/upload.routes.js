@@ -18,7 +18,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB
+  limits: { fileSize: 25 * 1024 * 1024 }, 
 });
 
 router.post("/upload", upload.single("file"), async (req, res, next) => {
@@ -26,6 +26,12 @@ router.post("/upload", upload.single("file"), async (req, res, next) => {
     if (!req.file) {
       return res.status(400).json({ error: "Missing file" });
     }
+    const allowedTypes = ["audio/mpeg", "audio/wav", "audio/x-wav", "audio/mp3"];
+
+    if (!allowedTypes.includes(req.file.mimetype)) {
+      return res.status(400).json({ error: "Invalid file type" });
+    }
+
 
     const absPath = path.resolve(req.file.path);
     if (!fs.existsSync(absPath)) {

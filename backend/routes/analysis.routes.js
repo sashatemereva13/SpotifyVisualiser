@@ -4,19 +4,32 @@ import { callAnalysisService } from "../services/analysisClient.js";
 
 const router = Router();
 
+async function ensureAnalysesTable(db) {
+  await run(
+    db,
+    `
+    CREATE TABLE IF NOT EXISTS analyses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      track_id INTEGER NOT NULL,
+      status TEXT NOT NULL,
+      result_json TEXT,
+      error_message TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (track_id) REFERENCES tracks(id)
+    );
+    `
+  );
+}
 
 router.post("/analysis/:trackId", async (req, res, next) => {
   const trackId = Number(req.params.trackId);
+  let db;
 
   try {
-    const db = await openDb();
+    db = await openDb();
+    await ensureAnalysesTable(db);
 
-    const track = await get(
-      db,
-      "SELECT * FROM tracks WHERE id = ?",
-      [trackId]
-    );
-
+    const track = await get(db, "SELECT * FROM tracks WHERE id = ?", [trackId]);
     if (!track) {
       return res.status(404).json({ error: "Track not found" });
     }
@@ -31,14 +44,24 @@ router.post("/analysis/:trackId", async (req, res, next) => {
 
     try {
       const result = await callAnalysisService(track.path);
+      console.log("RESULT FROM PY:", result);
 
       await run(
         db,
         `UPDATE analyses
-         SET status = 'done', result_json = ?
+         SET status = 'done',
+             result_json = ?,
+             error_message = NULL
          WHERE id = ?`,
         [JSON.stringify(result), lastID]
       );
+
+      const check = await get(
+        db,
+        "SELECT result_json FROM analyses WHERE id = ?",
+        [lastID]
+      );
+      console.log("SAVED result_json length:", check?.result_json?.length);
 
       const analysis = await get(
         db,
@@ -46,38 +69,57 @@ router.post("/analysis/:trackId", async (req, res, next) => {
         [lastID]
       );
 
-      res.status(201).json({ analysis });
-
+      return res.status(201).json({ analysis });
     } catch (err) {
+      const details =
+        err?.payload
+          ? JSON.stringify(err.payload)
+          : err?.stderr
+          ? String(err.stderr)
+          : err?.message
+          ? String(err.message)
+          : "Unknown analysis error";
+
       await run(
         db,
         `UPDATE analyses
-         SET status = 'error', error_message = ?
+         SET status = 'error',
+             error_message = ?
          WHERE id = ?`,
-        [err.message, lastID]
+        [details, lastID]
       );
 
-      res.status(500).json({ error: "Analysis failed", details: err.message });
+      return res.status(502).json({
+        error: "Analysis failed",
+        details,
+        analysisId: lastID,
+        trackId,
+      });
     }
-
   } catch (err) {
     next(err);
+  } finally {
+    if (db) db.close();
   }
 });
 
 router.get("/analysis/:trackId", async (req, res, next) => {
   const trackId = Number(req.params.trackId);
+  let db;
 
   try {
-    const db = await openDb();
+    db = await openDb();
+    await ensureAnalysesTable(db);
 
     const analysis = await get(
       db,
-      `SELECT *
-       FROM analyses
-       WHERE track_id = ?
-       ORDER BY id DESC
-       LIMIT 1`,
+      `
+      SELECT *
+      FROM analyses
+      WHERE track_id = ?
+      ORDER BY id DESC
+      LIMIT 1
+      `,
       [trackId]
     );
 
@@ -85,10 +127,20 @@ router.get("/analysis/:trackId", async (req, res, next) => {
       return res.status(404).json({ error: "Analysis not found" });
     }
 
-    res.json({ analysis });
+    const parsedResult = analysis.result_json
+      ? JSON.parse(analysis.result_json)
+      : null;
 
+    return res.json({
+      analysis: {
+        ...analysis,
+        result: parsedResult,
+      },
+    });
   } catch (err) {
     next(err);
+  } finally {
+    if (db) db.close();
   }
 });
 

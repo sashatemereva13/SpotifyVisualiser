@@ -1,18 +1,12 @@
-# analysis_service/analysis.py
-import librosa
-import json
+import librosa, json
 
 def get_json(file_path: str):
-    y, sr = librosa.load(file_path, sr=None, mono=True)
+    y, sr = librosa.load(file_path, sr=22050, mono=True, duration=30)
+    onset_env = librosa.onset.onset_strength(y=y, sr=sr)
+    tempo = float(librosa.feature.tempo(onset_envelope=onset_env, sr=sr)[0])
+    duration = float(librosa.get_duration(y=y, sr=sr))
+    return {"tempo": tempo, "duration": duration, "sample_rate": sr}
 
-    tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
-    duration = librosa.get_duration(y=y, sr=sr)
-
-    return {
-        "tempo": float(tempo),
-        "duration": float(duration),
-        "sample_rate": sr
-    }
 if __name__ == "__main__":
-    import sys, json
+    import sys
     print(json.dumps(get_json(sys.argv[1])))
