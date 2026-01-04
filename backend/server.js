@@ -36,7 +36,7 @@ app.get("/health", (req, res) => {
   res.json({ ok: true });
 });
 
-// error handler (keep LAST)
+// ERROR HANDLER
 app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).json({ error: err.message || "Internal error" });
