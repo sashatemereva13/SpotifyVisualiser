@@ -23,6 +23,7 @@ import tracksRoutes from "./routes/tracks.routes.js";
 
 // Returns analysis results for a track (GET /api/analysis/:trackId)
 import analysisRoutes from "./routes/analysis.routes.js";
+import { errorHandler } from "./middlewares/errorHandler.js";
 
 // Create the Express application instance
 const app = express();
@@ -46,6 +47,9 @@ app.use(express.json());
 // Expose uploaded audio files publicly
 // Example: http://localhost:3001/uploads/song.mp3
 app.use("/uploads", express.static("uploads"));
+
+// error handling
+app.use(errorHandler);
 
 // ----------------------------
 // Initialization
