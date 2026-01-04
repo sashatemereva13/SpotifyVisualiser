@@ -1,6 +1,8 @@
-# 🎧 Spotify Visualiser
+# 🎧 Visualiser
 
-We intentionally chose to manage our own audio database instead of relying on Spotify, in order to retain full control over signal analysis, playback quality, and data modelling. This allowed us to perform advanced analysis and build a richer visualization pipeline.
+visualiser.cloud
+A community-driven music visualiser
+where every uploaded song becomes part of a growing audiovisual library.
 
 Interactive 3D Music Visualisation using Audio Analysis + ThreeJS
 
