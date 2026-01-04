@@ -1,4 +1,4 @@
-export default function AudioPlayer({ setAudio, onAnalysis }) {
+export default function AudioPlayer({ setAudio, onAnalysis, presenceRef }) {
   async function handleFile(file) {
     if (!file) return;
 
@@ -40,22 +40,33 @@ export default function AudioPlayer({ setAudio, onAnalysis }) {
       onDragOver={(e) => e.preventDefault()}
       onDrop={onDrop}
       className="
+      intro-overlay
         fixed inset-0 z-20
         flex items-center justify-center
         text-white
-        cursor-pointer
-        bg-black/40 backdrop-blur-md
-        transition-opacity
-        hover:bg-black/50
+        bg-black/30 backdrop-blur-lg
       "
     >
-      <label className="flex flex-col items-center gap-4">
-        <span className="text-2xl font-display tracking-wide">
-          Drop music or click to begin
-        </span>
+      <label className="flex flex-col items-center text-center gap-6 px-6 max-w-xl cursor-pointer">
+        {/* Concept */}
+        <div className="space-y-4">
+          <h1 className="text-3xl md:text-4xl font-display tracking-wide">
+            Sound is ... embodied
+          </h1>
 
-        <span className="text-sm opacity-70">
-          An emotional body reacting to rhythm & frequency
+          <p className="font-italic text-base md:text-lg opacity-80 leading-relaxed">
+            ..not understood by the mind,
+            <br />
+            but felt in the body.
+          </p>
+        </div>
+
+        {/* Divider (subtle) */}
+        <div className="w-12 h-px bg-white/20 my-2" />
+
+        {/* Instruction */}
+        <span className="text-sm font-primary tracking-wide opacity-70">
+          Drop music or click to begin
         </span>
 
         <input
