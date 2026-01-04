@@ -1,4 +1,5 @@
 import FractalSDF from "./FractalSDF";
+import FullscreenPlane from "./FullscreenPlane";
 
 export default function FractalNode({
   scale = 1,
@@ -8,17 +9,25 @@ export default function FractalNode({
   structuralRef,
   audioReadyRef,
   playbackStateRef,
+
+  qualityMode,
+  qualityPreset,
+  onPerformanceAdapt,
 }) {
   return (
     <group position={[-1, 0, -5]} scale={scale}>
-      <FractalSDF
-        rmsRef={rmsRef}
-        bandsRef={bandsRef}
-        beatRef={beatRef}
-        structuralRef={structuralRef}
-        audioReadyRef={audioReadyRef}
-        playbackStateRef={playbackStateRef}
-      />
+      <FullscreenPlane>
+        <FractalSDF
+          rmsRef={rmsRef}
+          beatRef={beatRef}
+          structuralRef={structuralRef}
+          audioReadyRef={audioReadyRef}
+          playbackStateRef={playbackStateRef}
+          qualityMode={qualityMode}
+          qualityPreset={qualityPreset}
+          onPerformanceAdapt={onPerformanceAdapt}
+        />
+      </FullscreenPlane>
     </group>
   );
 }

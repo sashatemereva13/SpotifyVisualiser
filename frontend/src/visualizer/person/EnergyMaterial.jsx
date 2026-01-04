@@ -11,6 +11,7 @@ export default function EnergyMaterial({ energy, hue }) {
         roughness={0.1}
         clearcoat={0.5}
         clearcoatRoughness={0.05}
+<<<<<<< HEAD
         iridescence={1.3}
         iridescenceIOR={2.6}
         iridescenceThicknessRange={[200, 800]}
@@ -18,6 +19,15 @@ export default function EnergyMaterial({ energy, hue }) {
         emissiveIntensity={0.4 + energy * 0.8}
         transparent
         opacity={0.2}
+=======
+        iridescence={0.3}
+        iridescenceIOR={2.6}
+        iridescenceThicknessRange={[200, 800]}
+        emissive="#2f82b5"
+        emissiveIntensity={0.4 + energy * 0.8}
+        transparent
+        opacity={0.7}
+>>>>>>> feature/frontend-sasha
         side={THREE.DoubleSide}
       />
     </>
