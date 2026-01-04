@@ -43,7 +43,7 @@ export default function AudioPlayer({ setAudio, onAnalysis, presenceRef }) {
         fixed inset-0 z-20
         flex items-center justify-center
         text-white
-        bg-black/60 backdrop-blur-lg
+        bg-black/30 backdrop-blur-lg
       "
     >
       <label className="flex flex-col items-center text-center gap-6 px-6 max-w-xl cursor-pointer">
