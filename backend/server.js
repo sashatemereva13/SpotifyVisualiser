@@ -1,18 +1,14 @@
-import analysisRoutes from "./routes/analysis.routes.js";
-import uploadRoutes from "./routes/upload.routes.js";
-import express from "express";
-import cors from "cors";
 import dotenv from "dotenv";
-
-import trackRoutes from "./routes/tracks.routes.js";
-import { initDb } from "./db/init.js";
-
 dotenv.config();
 
 import express from "express";
 import cors from "cors";
 import { initDb } from "./db/init.js";
-import uploadRouter from "./routes/upload.js";
+
+// routes
+import uploadRoutes from "./routes/upload.routes.js";
+import tracksRoutes from "./routes/tracks.routes.js";
+import analysisRoutes from "./routes/analysis.routes.js";
 
 const app = express();
 
@@ -20,12 +16,18 @@ const app = express();
 app.use(cors({ origin: process.env.CORS_ORIGIN || "*" }));
 app.use(express.json());
 
-// INIT DB FIRST
+// serve uploaded audio files
+app.use("/uploads", express.static("uploads"));
+
+// init database + folders
 await initDb();
 
-// ROUTES
-app.use(trackRoutes);
+// API routes
+app.use("/api", uploadRoutes);
+app.use("/api", tracksRoutes);
+app.use("/api", analysisRoutes);
 
+// health & root
 app.get("/", (req, res) => {
   res.send("Spotify Visualiser Backend is running. Try /health");
 });
@@ -34,18 +36,13 @@ app.get("/health", (req, res) => {
   res.json({ ok: true });
 });
 
-// ERROR HANDLER
+// error handler (keep LAST)
 app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).json({ error: err.message || "Internal error" });
 });
 
-app.use(uploadRoutes);
-app.use(trackRoutes);
-app.use(uploadRoutes);
-app.use(analysisRoutes);
-
 const PORT = Number(process.env.PORT || 3001);
-app.listen(PORT, () =>
-  console.log(`Backend running on http://localhost:${PORT}`)
-);
+app.listen(PORT, () => {
+  console.log(`Backend running on http://localhost:${PORT}`);
+});
