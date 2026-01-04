@@ -2,7 +2,7 @@ import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 
-export default function AuraParticles({ count = 120 }) {
+export default function AuraParticles({ count = 100 }) {
   const pointsRef = useRef();
 
   const particles = useMemo(() => {

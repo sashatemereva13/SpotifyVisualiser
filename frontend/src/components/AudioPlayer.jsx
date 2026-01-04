@@ -1,36 +1,80 @@
-export default function AudioPlayer({ onAnalysis }) {
-  async function handlePlay(e) {
-    const file = e.target.files[0];
+export default function AudioPlayer({ setAudio, onAnalysis, presenceRef }) {
+  async function handleFile(file) {
     if (!file) return;
 
-    // play audio locally
     const audio = new Audio(URL.createObjectURL(file));
-    audio.play();
+    audio.crossOrigin = "anonymous";
 
-    // send to backend
+    await audio.play();
+    setAudio(audio);
+
+    audio.onended = () => {
+      audio.dispatchEvent(new Event("ended-by-user"));
+    };
+
     const formData = new FormData();
     formData.append("file", file);
 
-    try {
-      const res = await fetch("http://localhost:8000/api/tracks", {
-        method: "POST",
-        body: formData,
-      });
+    const API_URL = import.meta.env.VITE_API_URL;
+    const res = await fetch(`${API_URL}/api/tracks`, {
+      method: "POST",
+      body: formData,
+    });
 
-      const data = await res.json();
-      console.log("BACKEND RESPONSE:", data);
-      onAnalysis?.(data.analysis);
-    } catch (err) {
-      console.error("Analysis failed", err);
-    }
+    const data = await res.json();
+    onAnalysis(data.analysis);
+  }
+
+  function onInputChange(e) {
+    handleFile(e.target.files[0]);
+  }
+
+  function onDrop(e) {
+    e.preventDefault();
+    handleFile(e.dataTransfer.files[0]);
   }
 
   return (
-    <input
-      className="bg-amber text-dark px-4 py-2 rounded"
-      type="file"
-      accept="audio/*"
-      onChange={handlePlay}
-    />
+    <div
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={onDrop}
+      className="
+      intro-overlay
+        fixed inset-0 z-20
+        flex items-center justify-center
+        text-white
+        bg-black/60 backdrop-blur-lg
+      "
+    >
+      <label className="flex flex-col items-center text-center gap-6 px-6 max-w-xl cursor-pointer">
+        {/* Concept */}
+        <div className="space-y-4">
+          <h1 className="text-3xl md:text-4xl font-display tracking-wide">
+            Sound is ... embodied
+          </h1>
+
+          <p className="font-italic text-base md:text-lg opacity-80 leading-relaxed">
+            ..not understood by the mind,
+            <br />
+            but felt in the body.
+          </p>
+        </div>
+
+        {/* Divider (subtle) */}
+        <div className="w-12 h-px bg-white/20 my-2" />
+
+        {/* Instruction */}
+        <span className="text-sm font-primary tracking-wide opacity-70">
+          Drop music or click to begin
+        </span>
+
+        <input
+          type="file"
+          accept="audio/*"
+          onChange={onInputChange}
+          className="hidden"
+        />
+      </label>
+    </div>
   );
 }

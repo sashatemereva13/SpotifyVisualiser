@@ -5,13 +5,11 @@ analysis/
 *.mp3
 **/__pycache__
 .idea/
+
 # python logs / venv
-analysis_service/*.log
-analysis_service/*.txt
-**/__pycache__/
-**/.venv/
 backend/db/app.sqlite
 backend/uploads/
-analysis_service/.venv/
 analysis_service/*.log
 analysis_service/*.txt
+analysis_service/.venv/
+analysis_service/.venv/**

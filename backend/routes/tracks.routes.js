@@ -1,22 +1,32 @@
-import express from "express";
+import { Router } from "express";
 import { openDb, all } from "../db/sqlite.js";
 
-const router = express.Router();
+const router = Router();
 
 router.get("/tracks", async (req, res, next) => {
+  let db;
   try {
-    const db = await openDb();
+    db = await openDb();
+
     const rows = await all(
       db,
-      `SELECT id, original_name, filename, mime_type, size_bytes, created_at
+      `SELECT
+         id,
+         original_name,
+         filename,
+         mime_type,
+         size_bytes,
+         path,
+         created_at
        FROM tracks
-       ORDER BY id DESC
-       LIMIT 100`
+       ORDER BY id DESC`
     );
-    db.close();
-    res.json({ items: rows });
-  } catch (e) {
-    next(e);
+
+    res.json({ tracks: rows });
+  } catch (err) {
+    next(err);
+  } finally {
+    if (db) db.close();
   }
 });
 
