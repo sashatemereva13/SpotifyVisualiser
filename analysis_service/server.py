@@ -5,9 +5,11 @@ from flask import Flask, request, jsonify
 # subprocess lets Python run external programs (here: another Python script).
 # os is used to work with file paths and check if files exist.
 # json is used to parse and return JSON data.
-import subprocess
+
 import os
-import json
+
+
+from analysis import get_json
 
 # Create the Flask application.
 # This represents our analysis microservice.
@@ -39,43 +41,10 @@ def run_analysis():
         return jsonify({"error": "File not found"}), 404
 
     try:
-        # Run the audio analysis script (analysis.py) as a subprocess.
-        #
-        # ["python3", "../analysis.py", file_path]
-        # - python3 → Python interpreter
-        # - ../analysis.py → analysis script
-        # - file_path → argument passed to the script
-        #
-        # capture_output=True → capture stdout/stderr
-        # text=True → treat output as text instead of bytes
-        # check=True → raise an error if the script fails
-        result = subprocess.run(
-            ["python3", "../analysis.py", file_path],
-            capture_output=True,
-            text=True,
-            check=True
-        )
+        return jsonify(get_json(file_path)), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-        # The analysis script is expected to print JSON to stdout.
-        # We strip whitespace and parse it.
-        output = result.stdout.strip()
-
-        # Convert the JSON string into a Python object
-        # and return it as an HTTP JSON response.
-        return jsonify(json.loads(output)), 200
-
-    except subprocess.CalledProcessError as e:
-        # This error happens if analysis.py crashes or exits with an error code.
-        return jsonify({
-            "error": "Analysis failed",
-            "details": e.stderr
-        }), 500
-
-    except json.JSONDecodeError:
-        # This error happens if analysis.py does not output valid JSON.
-        return jsonify({
-            "error": "Invalid JSON from analysis.py"
-        }), 500
 
 
 # If this file is executed directly (not imported),

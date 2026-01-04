@@ -19,8 +19,11 @@ requirements:
 
 import numpy as np
 import librosa
-import json
 import os
+
+import json
+
+
 
 # -------------------------------------------------------
 # UTILITAIRE : compression des signaux
@@ -208,7 +211,3 @@ def get_json(file_path: str):
     return analyzer.run()
 
 
-# Test manuel
-if __name__ == "__main__":
-    analise = Analysis('audio_test.mp3')
-    print(get_json("audio_test.mp3"))
