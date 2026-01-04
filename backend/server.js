@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import trackRoutes from "./routes/tracks.routes.js";
 import uploadRoutes from "./routes/upload.routes.js";
 import analysisRoutes from "./routes/analysis.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
 import { initDb } from "./db/init.js";
 
 dotenv.config();
@@ -21,6 +22,7 @@ app.get("/health", (req, res) => res.json({ ok: true }));
 app.use(trackRoutes);
 app.use(uploadRoutes);
 app.use(analysisRoutes);
+app.use(adminRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);
