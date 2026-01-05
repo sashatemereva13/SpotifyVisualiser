@@ -1,40 +1,146 @@
-import express from "express";
-import { openDb, get } from "../db/sqlite.js";
+import { Router } from "express";
+import { openDb, run, get } from "../db/sqlite.js";
+import { callAnalysisService } from "../services/analysisClient.js";
 
-const router = express.Router();
+const router = Router();
 
-router.get("/analysis/:trackId", async (req, res, next) => {
+async function ensureAnalysesTable(db) {
+  await run(
+    db,
+    `
+    CREATE TABLE IF NOT EXISTS analyses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      track_id INTEGER NOT NULL,
+      status TEXT NOT NULL,
+      result_json TEXT,
+      error_message TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (track_id) REFERENCES tracks(id)
+    );
+    `
+  );
+}
+
+router.post("/analysis/:trackId", async (req, res, next) => {
+  const trackId = Number(req.params.trackId);
+  let db;
+
   try {
-    const trackId = Number(req.params.trackId);
-    if (!Number.isFinite(trackId)) {
-      return res.status(400).json({ error: "Invalid trackId" });
+    db = await openDb();
+    await ensureAnalysesTable(db);
+
+    const track = await get(db, "SELECT * FROM tracks WHERE id = ?", [trackId]);
+    if (!track) {
+      return res.status(404).json({ error: "Track not found" });
     }
 
-    const db = await openDb();
-    const row = await get(
+    const createdAt = new Date().toISOString();
+    const { lastID } = await run(
       db,
-      `SELECT track_id, status, result_json, error_message, created_at
-       FROM analyses
-       WHERE track_id = ?
-       ORDER BY id DESC
-       LIMIT 1`,
+      `INSERT INTO analyses (track_id, status, created_at)
+       VALUES (?, 'pending', ?)`,
+      [trackId, createdAt]
+    );
+
+    try {
+      const result = await callAnalysisService(track.path);
+      console.log("RESULT FROM PY:", result);
+
+      await run(
+        db,
+        `UPDATE analyses
+         SET status = 'done',
+             result_json = ?,
+             error_message = NULL
+         WHERE id = ?`,
+        [JSON.stringify(result), lastID]
+      );
+
+      const check = await get(
+        db,
+        "SELECT result_json FROM analyses WHERE id = ?",
+        [lastID]
+      );
+      console.log("SAVED result_json length:", check?.result_json?.length);
+
+      const analysis = await get(
+        db,
+        "SELECT * FROM analyses WHERE id = ?",
+        [lastID]
+      );
+
+      return res.status(201).json({ analysis });
+    } catch (err) {
+      const details =
+        err?.payload
+          ? JSON.stringify(err.payload)
+          : err?.stderr
+          ? String(err.stderr)
+          : err?.message
+          ? String(err.message)
+          : "Unknown analysis error";
+
+      await run(
+        db,
+        `UPDATE analyses
+         SET status = 'error',
+             error_message = ?
+         WHERE id = ?`,
+        [details, lastID]
+      );
+
+      return res.status(502).json({
+        error: "Analysis failed",
+        details,
+        analysisId: lastID,
+        trackId,
+      });
+    }
+  } catch (err) {
+    next(err);
+  } finally {
+    if (db) db.close();
+  }
+});
+
+router.get("/analysis/:trackId", async (req, res, next) => {
+  const trackId = Number(req.params.trackId);
+  let db;
+
+  try {
+    db = await openDb();
+    await ensureAnalysesTable(db);
+
+    const analysis = await get(
+      db,
+      `
+      SELECT *
+      FROM analyses
+      WHERE track_id = ?
+      ORDER BY id DESC
+      LIMIT 1
+      `,
       [trackId]
     );
-    db.close();
 
-    if (!row) {
+    if (!analysis) {
       return res.status(404).json({ error: "Analysis not found" });
     }
 
-    res.json({
-      track_id: row.track_id,
-      status: row.status,
-      error: row.error_message || null,
-      result: row.result_json ? JSON.parse(row.result_json) : null,
-      created_at: row.created_at,
+    const parsedResult = analysis.result_json
+      ? JSON.parse(analysis.result_json)
+      : null;
+
+    return res.json({
+      analysis: {
+        ...analysis,
+        result: parsedResult,
+      },
     });
   } catch (err) {
     next(err);
+  } finally {
+    if (db) db.close();
   }
 });
 

@@ -1,26 +1,20 @@
-import fs from "fs";
-import FormData from "form-data";
-
 export async function callAnalysisService(filePath) {
   const baseUrl = process.env.ANALYSIS_SERVICE_URL || "http://127.0.0.1:5000";
+  const url = `${baseUrl}/run-analysis?filePath=${encodeURIComponent(filePath)}`;
 
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`Audio file not found: ${filePath}`);
+  let resp;
+  try {
+    resp = await fetch(url, { method: "POST" });
+  } catch (e) {
+    throw new Error(`Cannot reach analysis service at ${baseUrl}: ${e.message}`);
   }
-
-  const form = new FormData();
-  form.append("file", fs.createReadStream(filePath));
-
-  const resp = await fetch(`${baseUrl}/api/tracks`, {
-    method: "POST",
-    body: form,
-    headers: form.getHeaders(),
-  });
 
   if (!resp.ok) {
-    const text = await resp.text().catch(() => "");
-    throw new Error(`Analysis service failed: ${resp.status} ${text}`);
+    const data = await resp.json().catch(() => null);
+    const err = new Error("Analysis service failed");
+    err.payload = data;
+    err.status = resp.status;
+    throw err;
   }
 
-  return await resp.json();
 }
