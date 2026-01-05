@@ -1,32 +1,36 @@
 import { useRef, useState } from "react";
 import VisualizerBasic from "./visualizer/VisualizerBasic";
-import AudioPlayer from "./components/AudioPlayer";
+import UploadTrack from "./components/UploadTrack";
+import TrackList from "./components/TrackList";
 
 export default function App() {
   const [analysis, setAnalysis] = useState(null);
   const [audio, setAudio] = useState(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [file, setFile] = useState(null);
 
   const presenceRef = useRef(0);
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-dark">
-      <div className="absolute inset-0 z-1">
-        <VisualizerBasic
-          data={analysis}
-          audio={audio}
-          onPlaybackChange={setIsPlaying}
-          presenceRef={presenceRef}
-        />
-      </div>
+      <VisualizerBasic
+        data={analysis}
+        audio={audio}
+        presenceRef={presenceRef}
+      />
 
-      <div className="intro-overlay fixed inset-0 z-20 flex items-center justify-center text-white bg-black/60 backdrop-blur-lg">
-        <AudioPlayer
-          setAudio={setAudio}
-          onAnalysis={setAnalysis}
-          presenceRef={presenceRef}
+      {!analysis && (
+        <UploadTrack
+          onReady={({ analysis, file }) => {
+            setAnalysis(analysis);
+            setFile(file);
+
+            const audio = new Audio(URL.createObjectURL(file));
+            audio.crossOrigin = "anonymous";
+            audio.play();
+            setAudio(audio);
+          }}
         />
-      </div>
+      )}
     </div>
   );
 }
