@@ -15,3 +15,4 @@ backend/uploads/
 analysis_service/.venv/
 analysis_service/*.log
 analysis_service/*.txt
+.DS_Store
