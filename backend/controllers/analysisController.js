@@ -1,11 +1,12 @@
 import { getTrackById } from "../services/tracksService.js";
 import { runAnalysis } from "../services/analysisService.js";
+import { getLatestAnalysisForTrack } from "../services/analysisService.js";
 
 export async function analyzeTrack(req, res, next) {
   try {
     const trackId = Number(req.params.trackId);
 
-    if (!trackId) {
+    if (!Number.isFinite(trackId)) {
       return res.status(400).json({ error: "Invalid trackId" });
     }
 
@@ -15,7 +16,7 @@ export async function analyzeTrack(req, res, next) {
       return res.status(404).json({ error: "Track not found" });
     }
 
-    const analysis = await runAnalysis(track.path);
+    const analysis = await runAnalysis(track);
 
     res.json({
       trackId,

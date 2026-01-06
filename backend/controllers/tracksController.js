@@ -1,5 +1,4 @@
-import { getAllTracks, getTracksById } from "../services/tracksService.js";
-import path from "path";
+import { getAllTracks, getTrackById } from "../services/tracksService.js";
 import fs from "fs";
 
 export async function listTracks(req, res, next) {
@@ -15,11 +14,11 @@ export async function getTrack(req, res, next) {
   try {
     const trackId = Number(req.params.trackId);
 
-    if (!trackId) {
+    if (!Number.isFinite(trackId)) {
       return res.status(400).json({ error: "Invalid trackId" });
     }
 
-    const track = await getTracksById(trackId);
+    const track = await getTrackById(trackId);
 
     if (!track) {
       return res.status(404).json({ error: "Track not found" });
@@ -34,39 +33,49 @@ export async function getTrack(req, res, next) {
 export async function streamTrack(req, res, next) {
   try {
     const trackId = Number(req.params.trackId);
-    const track = await getTrackById(trackId);
 
+    if (!Number.isFinite(trackId)) {
+      return res.status(400).json({ error: "Invalid trackId" });
+    }
+
+    const track = await getTrackById(trackId);
     if (!track) {
       return res.status(404).json({ error: "Track not found" });
     }
 
     const filePath = track.path;
-    const stat = fs.statSync(filePath);
+
+    try {
+      await fs.promises.access(filePath);
+    } catch {
+      return res.status(404).json({ error: "Audio file not found" });
+    }
+
+    const stat = await fs.promises.stat(filePath);
     const fileSize = stat.size;
     const range = req.headers.range;
 
+    const contentType = track.mime_type || "application/octet-stream";
+
     if (range) {
-      // Example: "bytes=12345-"
       const parts = range.replace(/bytes=/, "").split("-");
       const start = parseInt(parts[0], 10);
       const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-
       const chunkSize = end - start + 1;
-
-      const file = fs.createReadStream(filePath, { start, end });
 
       res.writeHead(206, {
         "Content-Range": `bytes ${start}-${end}/${fileSize}`,
         "Accept-Ranges": "bytes",
         "Content-Length": chunkSize,
-        "Content-Type": "audio/mpeg",
+        "Content-Type": contentType,
       });
 
-      file.pipe(res);
+      fs.createReadStream(filePath, { start, end }).pipe(res);
     } else {
       res.writeHead(200, {
+        "Accept-Ranges": "bytes",
         "Content-Length": fileSize,
-        "Content-Type": "audio/mpeg",
+        "Content-Type": contentType,
       });
 
       fs.createReadStream(filePath).pipe(res);
@@ -75,5 +84,3 @@ export async function streamTrack(req, res, next) {
     next(err);
   }
 }
-
-router.get("/tracks/:trackId/audio", streamTrack);

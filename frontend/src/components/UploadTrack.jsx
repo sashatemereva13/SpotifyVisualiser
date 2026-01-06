@@ -9,6 +9,11 @@ export default function UploadTrack({ onReady }) {
   async function handleFile(file) {
     if (!file || !confirmed) return;
 
+    if (!confirmed) {
+      alert("Please confirm you have the rights to this audio.");
+      return;
+    }
+
     setLoading(true);
 
     // 1. Upload the track
@@ -52,18 +57,21 @@ export default function UploadTrack({ onReady }) {
         </div>
 
         {/* Rights */}
-        <label className="flex items-center gap-2 text-sm opacity-80">
+        <div className="flex items-center gap-2 text-sm opacity-80">
           <input
             type="checkbox"
             checked={confirmed}
             onChange={(e) => setConfirmed(e.target.checked)}
           />
           I confirm that I have the rights to upload this audio.
+        </div>
+
+        <label htmlFor="audio-upload" className="text-sm opacity-60">
+          Drop music or click to begin
         </label>
 
-        <span className="text-sm opacity-60">Drop music or click to begin</span>
-
         <input
+          id="audio-upload"
           type="file"
           accept="audio/*"
           className="hidden"

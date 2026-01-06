@@ -3,6 +3,9 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+import path from "path";
+import { fileURLToPath } from "url";
+
 // Core backend dependencies
 import express from "express";
 import cors from "cors";
@@ -44,13 +47,13 @@ app.use(express.json());
 // Static files
 // ----------------------------
 
+// Make __dirname available in ES module scope
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // Expose uploaded audio files publicly
 // Example: http://localhost:3001/uploads/song.mp3
-app.use("/uploads", express.static("uploads"));
-
-// error handling
-app.use(errorHandler);
-
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // ----------------------------
 // Initialization
 // ----------------------------
@@ -59,7 +62,12 @@ app.use(errorHandler);
 // - creates uploads/ directory
 // - creates db/ directory
 // - runs schema.sql if needed
-await initDb();
+try {
+  await initDb();
+} catch (err) {
+  console.error("Failed to initialize database:", err);
+  process.exit(1); // Exit with failure
+}
 
 // ----------------------------
 // API routes
@@ -85,19 +93,6 @@ app.get("/health", (req, res) => {
 });
 
 // ----------------------------
-// Global error handler
-// ----------------------------
-
-// Catch any unhandled errors thrown by routes or middleware
-// Ensures the backend never crashes silently
-app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(500).json({
-    error: err.message || "Internal error",
-  });
-});
-
-// ----------------------------
 // Server startup
 // ----------------------------
 
@@ -108,3 +103,8 @@ const PORT = Number(process.env.PORT || 3001);
 app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);
 });
+
+// ----------------------------
+// Global error handler
+// ----------------------------
+app.use(errorHandler);

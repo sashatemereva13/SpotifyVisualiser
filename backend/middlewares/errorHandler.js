@@ -1,4 +1,8 @@
 export function errorHandler(err, req, res, next) {
+  if (res.headersSent) {
+    return next(err);
+  }
+
   // Default values
   const status = err.status || err.statusCode || 500;
   const message = err.message || "Internal Server Error";
