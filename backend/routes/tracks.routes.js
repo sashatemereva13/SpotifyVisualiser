@@ -1,5 +1,9 @@
 import express from "express";
-import { listTracks, getTrack } from "../controllers/tracksController.js";
+import {
+  listTracks,
+  getTrack,
+  streamTrack,
+} from "../controllers/tracksController.js";
 
 const router = express.Router();
 
@@ -7,6 +11,9 @@ const router = express.Router();
 router.get("/", listTracks);
 
 // Get single track
-router.get("/:id", getTrack);
+router.get("/:trackId", getTrack);
+
+// stream track audio
+router.get("/:trackId/audio", streamTrack);
 
 export default router;

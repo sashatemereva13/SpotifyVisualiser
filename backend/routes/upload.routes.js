@@ -1,9 +1,16 @@
 import express from "express";
 import multer from "multer";
 import { uploadTrack } from "../controllers/uploadController.js";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const uploadDir =
+  process.env.UPLOAD_DIR || path.join(__dirname, "..", "uploads");
 
 const router = express.Router();
-const uploadDir = process.env.UPLOAD_DIR || "./uploads";
 
 // ---- Multer config (routes layer responsibility) ----
 const storage = multer.diskStorage({
@@ -16,7 +23,13 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB
+  limits: { fileSize: 25 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith("audio/")) {
+      return cb(new Error("Only audio files are allowed"));
+    }
+    cb(null, true);
+  },
 });
 
 // ---- Route ----

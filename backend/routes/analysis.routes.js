@@ -7,9 +7,9 @@ import {
 const router = express.Router();
 
 // Run analysis
-router.post("/:trackId", analyzeTrack);
+router.post("/:trackId/run", analyzeTrack);
 
 // Get latest analysis
-router.get("/:trackId", getLatestAnalysis);
+router.get("/:trackId/latest", getLatestAnalysis);
 
 export default router;
