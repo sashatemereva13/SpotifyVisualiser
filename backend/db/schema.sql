@@ -13,9 +13,12 @@ CREATE TABLE IF NOT EXISTS tracks (
 CREATE TABLE IF NOT EXISTS analyses (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   track_id INTEGER NOT NULL,
-  status TEXT NOT NULL CHECK(status IN ('pending','done','error')),
+  status TEXT NOT NULL CHECK(status IN ('success','error'))
   result_json TEXT,
   error_message TEXT,
   created_at TEXT NOT NULL,
   FOREIGN KEY(track_id) REFERENCES tracks(id) ON DELETE CASCADE
 );
+
+CREATE INDEX IF NOT EXISTS idx_analyses_track_id
+ON analyses(track_id);

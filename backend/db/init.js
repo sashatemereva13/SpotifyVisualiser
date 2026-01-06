@@ -7,10 +7,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export async function initDb() {
-  const uploadDir = process.env.UPLOAD_DIR || "./uploads";
+  const uploadDir =
+    process.env.UPLOAD_DIR || path.join(__dirname, "..", "uploads");
   fs.mkdirSync(uploadDir, { recursive: true });
 
-  const dbPath = process.env.DB_PATH || "./db/app.sqlite";
+  const dbPath = process.env.DB_PATH || path.join(__dirname, "app.sqlite");
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 
   // ✅ FIX: absolute path to schema.sql
@@ -23,8 +24,11 @@ export async function initDb() {
     .filter(Boolean);
 
   const db = await openDb();
-  for (const stmt of statements) {
-    await run(db, stmt);
+  try {
+    for (const stmt of statements) {
+      await run(db, stmt);
+    }
+  } finally {
+    db.close();
   }
-  db.close();
 }
