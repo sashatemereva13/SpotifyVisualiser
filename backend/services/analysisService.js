@@ -1,9 +1,6 @@
 import { openDb, get, run } from "../db/sqlite.js";
 import { runAnalysis as callPython } from "./analysisClient.js";
 
-import { openDb, get, run } from "../db/sqlite.js";
-import { runAnalysis as callPython } from "./analysisClient.js";
-
 export async function runAnalysis(track) {
   let result;
 
