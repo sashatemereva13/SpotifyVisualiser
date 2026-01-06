@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS tracks (
 CREATE TABLE IF NOT EXISTS analyses (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   track_id INTEGER NOT NULL,
-  status TEXT NOT NULL CHECK(status IN ('success','error'))
+  status TEXT NOT NULL CHECK(status IN ('success','error')),
   result_json TEXT,
   error_message TEXT,
   created_at TEXT NOT NULL,
