@@ -76,7 +76,7 @@ try {
 // Prefix all API routes with /api to keep a clean namespace
 app.use("/api", uploadRoutes);
 app.use("/api", tracksRoutes);
-app.use("/api", analysisRoutes);
+app.use("/api/analysis", analysisRoutes);
 
 // ----------------------------
 // Health & root endpoints
