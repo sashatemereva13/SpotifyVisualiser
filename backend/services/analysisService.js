@@ -9,7 +9,6 @@ export async function runAnalysis(track) {
     // 1. Run Python analysis
     const audioPath = path.join(
       process.cwd(),
-      "backend",
       "uploads",
       path.basename(track.path)
     );
