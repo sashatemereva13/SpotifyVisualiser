@@ -1,12 +1,20 @@
 import { openDb, get, run } from "../db/sqlite.js";
 import { runAnalysis as callPython } from "./analysisClient.js";
+import path from "path";
 
 export async function runAnalysis(track) {
   let result;
 
   try {
     // 1. Run Python analysis
-    result = await callPython(track.path);
+    const audioPath = path.join(
+      process.cwd(),
+      "backend",
+      "uploads",
+      path.basename(track.path)
+    );
+
+    result = await callPython(audioPath);
 
     // 2. Persist success
     const db = await openDb();
