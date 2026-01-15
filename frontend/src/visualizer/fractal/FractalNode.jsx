@@ -1,5 +1,5 @@
 import FractalSDF from "./FractalSDF";
-import FullscreenPlane from "./FullscreenPlane";
+import FullScreenPlane from "./FullScreenPlane";
 
 export default function FractalNode({
   scale = 1,

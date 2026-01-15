@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 
-function FullscreenPlane({ children }) {
+function FullScreenPlane({ children }) {
   const mesh = useRef();
   const { camera } = useThree();
 
@@ -23,4 +23,4 @@ function FullscreenPlane({ children }) {
   );
 }
 
-export default FullscreenPlane;
+export default FullScreenPlane;
