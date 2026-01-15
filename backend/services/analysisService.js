@@ -23,7 +23,7 @@ export async function runAnalysis(track) {
         `INSERT INTO analyses
          (track_id, status, result_json, created_at)
          VALUES (?, ?, ?, datetime('now'))`,
-        [track.id, "success", JSON.stringify(result)]
+        [track.id, "done", JSON.stringify(result)]
       );
     } finally {
       db.close();
