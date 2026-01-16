@@ -16,7 +16,7 @@ export default function FractalNode({
 }) {
   return (
     <group position={[-1, 0, -5]} scale={scale}>
-      <FullscreenPlane>
+      <FullScreenPlane>
         <FractalSDF
           rmsRef={rmsRef}
           beatRef={beatRef}
@@ -27,7 +27,7 @@ export default function FractalNode({
           qualityPreset={qualityPreset}
           onPerformanceAdapt={onPerformanceAdapt}
         />
-      </FullscreenPlane>
+      </FullScreenPlane>
     </group>
   );
 }
