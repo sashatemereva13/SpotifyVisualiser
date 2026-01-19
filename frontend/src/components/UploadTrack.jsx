@@ -3,16 +3,12 @@ import { uploadTrack, analyzeTrack } from "../api/tracks";
 
 export default function UploadTrack({ onReady }) {
   const [file, setFile] = useState(null);
+  const [prepared, setPrepared] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleFile(file) {
     if (!file || !confirmed) return;
-
-    if (!confirmed) {
-      alert("Please confirm you have the rights to this audio.");
-      return;
-    }
 
     setLoading(true);
 
@@ -23,8 +19,7 @@ export default function UploadTrack({ onReady }) {
     const { analysis } = await analyzeTrack(track.id);
 
     // 3. Hand off to App
-    onReady({ track, analysis, file });
-
+    setPrepared({ track, analysis, file });
     setLoading(false);
   }
 
@@ -33,16 +28,15 @@ export default function UploadTrack({ onReady }) {
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
         e.preventDefault();
-        if (!confirmed || loading) return;
+        if (!confirmed || loading || prepared) return;
         handleFile(e.dataTransfer.files[0]);
       }}
       className="
-      font-primary
+        font-primary
         fixed inset-0 z-20
         flex items-center justify-center
         text-white
-        bg-black/60 backdrop-blur-lg
-      "
+        bg-black/60 backdrop-blur-lg"
     >
       <div
         className={`
@@ -69,15 +63,13 @@ export default function UploadTrack({ onReady }) {
           aria-pressed={confirmed}
           aria-label="Confirm rights to upload audio"
           onClick={() => setConfirmed((v) => !v)}
-          className="
-    group relative
-    w-16 h-16
-    flex items-center justify-center
-    rounded-full
-    transition-transform duration-500
-    focus:outline-none
-    hover:scale-[1.05]
-  "
+          className="group relative
+                     w-16 h-16
+                     flex items-center justify-center
+                     rounded-full
+                     transition-transform duration-500
+                     focus:outline-none
+                     hover:scale-[1.05]"
         >
           {/* Glow */}
           {confirmed && (
@@ -89,20 +81,23 @@ export default function UploadTrack({ onReady }) {
     absolute inset-0 rounded-full
     transition-all duration-300
     group-hover:scale-[1.08]
-    group-hover:shadow-[0_0_30px_rgba(255,255,255,0.25)]
-  "
+    group-hover:shadow-[0_0_30px_rgba(255,255,255,0.25)]"
           />
 
           <span
             className={`
-    absolute
-    w-15 h-15
-    rounded-full
-    bg-white
-    transition-all duration-500
-    ${confirmed ? "scale-0 opacity-0" : "shadow-inner shadow-black/80"}
-    group-hover:scale-110
-  `}
+                    absolute
+                    w-15 h-15
+                    rounded-full
+                    bg-white
+                    transition-all duration-500
+                    ${
+                      confirmed
+                        ? "scale-0 opacity-0"
+                        : "shadow-inner shadow-black/80"
+                    }
+                    group-hover:scale-110
+                  `}
           />
 
           {/* SVG Sigil */}
@@ -123,10 +118,10 @@ export default function UploadTrack({ onReady }) {
 
             <path
               d="M50 28
-         L50 50
-         L66 66
-         M50 50
-         L34 66"
+                 L50 50
+                 L66 66
+                 M50 50
+                 L34 66"
               className="stroke-white"
               strokeWidth="1.5"
               strokeLinecap="round"
@@ -149,21 +144,23 @@ export default function UploadTrack({ onReady }) {
         </p>
 
         {/* can't click unless confirmed the rights */}
-        <label
-          htmlFor={confirmed && !loading ? "audio-upload" : undefined}
-          className={`
-    text-sm transition-all duration-300
+
+        {!prepared && (
+          <label
+            htmlFor={confirmed && !loading ? "audio-upload" : undefined}
+            className={`text-sm transition-all duration-300
     ${
       confirmed && !loading
         ? "opacity-80 cursor-pointer hover:opacity-100"
         : "opacity-40 cursor-not-allowed"
     }
   `}
-        >
-          {confirmed
-            ? "Drop music or click to begin"
-            : "Confirm rights to unlock"}
-        </label>
+          >
+            {confirmed
+              ? "Drop music or click to begin"
+              : "Confirm rights to unlock"}
+          </label>
+        )}
 
         <input
           id="audio-upload"
@@ -175,6 +172,23 @@ export default function UploadTrack({ onReady }) {
         />
 
         {loading && <p className="text-xs opacity-60">Analyzing…</p>}
+
+        {prepared && !loading && (
+          <button
+            onClick={() => onReady(prepared)}
+            className="
+  mt-4
+  px-6 py-3
+  text-sm tracking-wide uppercase
+  rounded-full
+  border border-white/30
+  transition-all duration-500
+  animate-fade-in
+"
+          >
+            Enter experience
+          </button>
+        )}
       </div>
     </div>
   );
